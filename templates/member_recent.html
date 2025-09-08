@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ member.name }} さんの直近成績</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 16px; color: #333; }
+    h2 { margin: 0 0 8px; color: #2c3e50; }
+    .meta { margin-bottom: 16px; color: #666; }
+
+    /* ▼ 表を見やすく・横幅を詰める */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;           /* 少しだけ小さく */
+      table-layout: fixed;       /* 列幅固定（各列のwidthを効かせる） */
+    }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; }
+    th { background: #f5f7fa; text-align: left; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+
+    /* ▼ 列ごとの幅（必要に応じて微調整OK） */
+    .col-date     { width: 9ch;  white-space: nowrap; }
+    .col-opponent { width: 26ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .col-handicap { width: 8ch;  white-space: nowrap; text-align: center; }
+    .col-result   { width: 6ch;  white-space: nowrap; text-align: center; }
+    .col-note     { /* 備考は可変でOK */ }
+
+    /* 相手欄の（棋力）はグレーで控えめに */
+    .opp-grade { color: #666; }
+  </style>
+</head>
+
+<body>
+  <h2>{{ member.name }} さんの直近成績（20件）</h2>
+  <div class="meta">現在の棋力：{{ member.grade }}</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="col-date">日付</th>
+        <th class="col-opponent">相手（棋力）</th>
+        <th class="col-handicap">駒落ち</th>
+        <th class="col-result">勝敗</th>
+        <th class="col-note">備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="col-date">{{ r.date }}</td>
+        <td class="col-opponent">
+          {# 相手（棋力）は省略記号対応。棋力を薄色に #}
+          {% if r.opponent %}
+            {% set parts = r.opponent.split('（') %}
+            {% if parts|length > 1 %}
+              {{ parts[0] }} <span class="opp-grade">（{{ parts[1] }}</span>
+            {% else %}
+              {{ r.opponent }}
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td class="col-handicap">{{ r.handicap or '-' }}</td>
+        <td class="col-result">{{ r.result or '-' }}</td>
+        <td class="col-note">{{ r.note if (r.note is not none and r.note|trim != '') else '' }}</td>
+      </tr>
+      {% endfor %}
+      {% if rows|length == 0 %}
+      <tr><td colspan="5">成績がありません。</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</body>
+
+</html>

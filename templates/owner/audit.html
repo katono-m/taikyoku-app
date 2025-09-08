@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>監査ログ</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<style>
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: end;
+    margin-bottom: 1rem;
+  }
+  .toolbar .field {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+  }
+  .table-wrap {
+    border: 1px solid #ddd;
+    border-radius: .5rem;
+    overflow: hidden;
+  }
+  .table-header {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
+    border-bottom: 1px solid #ddd;
+    font-weight: 600;
+  }
+  .table-scroll {
+    max-height: 70vh; /* 縦スクロール領域 */
+    overflow: auto;
+  }
+  table.audit {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.audit th, table.audit td {
+    padding: .5rem .75rem;
+    border-bottom: 1px solid #eee;
+    white-space: nowrap;
+  }
+  table.audit tbody tr:nth-child(odd) {
+    background: #fafafa;
+  }
+  .muted {
+    color: #6c757d;
+    font-size: .9em;
+  }
+  .actions-row {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    margin-left: auto;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid #ccc;
+    background: white;
+    padding: .4rem .7rem;
+    border-radius: .4rem;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+  }
+  .btn-outline {
+    background: white;
+  }
+  input[type="date"], select {
+    padding: .35rem .5rem;
+    border: 1px solid #ccc;
+    border-radius: .4rem;
+  }
+  .help {
+    margin-top: .5rem;
+    font-size: .9em;
+    color: #666;
+  }
+</style>
+
+<h2>監査ログ</h2>
+
+<form class="toolbar" method="get" action="{{ url_for('owner_audit_index') }}">
+  <div class="field">
+    <label for="start">開始日</label>
+    <input type="date" id="start" name="start" value="{{ start }}">
+  </div>
+  <div class="field">
+    <label for="end">終了日</label>
+    <input type="date" id="end" name="end" value="{{ end }}">
+  </div>
+  <div class="field">
+    <label for="action">操作種別</label>
+    <select id="action" name="action">
+      <option value="all" {{ 'selected' if action == 'all' else '' }}>すべて</option>
+      {% for a in actions %}
+        <option value="{{ a }}" {{ 'selected' if action == a else '' }}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- ★ 検索ボタンをここに置く（期間・操作種別のすぐ右） -->
+  <button type="submit" class="btn btn-primary">検索</button>
+
+  <div class="actions-row">
+    <a class="btn btn-outline"
+       href="{{ url_for('owner_audit_csv') }}?start={{ start }}&end={{ end }}&action={{ action }}">
+      CSVダウンロード
+    </a>
+    <!-- オーナー画面へ戻る -->
+    <a class="btn btn-outline" href="/owner/clubs">オーナー画面へ</a>
+  </div>
+</form>
+
+<div class="help">
+
+</div>
+
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table class="audit">
+      <thead class="table-header">
+        <tr>
+          <th style="width: 200px;">日時</th>
+          <th style="width: 160px;">クラブID</th>
+          <th style="width: 240px;">操作</th>
+          <th>メモ</th>
+        </tr>
+      </thead>
+      <tbody id="audit-body">
+        {% if logs and logs|length > 0 %}
+          {% for r in logs %}
+          <tr>
+            <!-- created_at はサーバー側ではUTC naive。data-iso に ISO として埋め込み、JSでローカル表示 -->
+            <td>
+                <span class="created-at"
+                    data-iso="{{ r.created_at.strftime('%Y-%m-%dT%H:%M:%S') }}Z">
+                <!-- JS適用前のフォールバック表示（UTC） -->
+                {{ r.created_at.strftime("%Y-%m-%d %H:%M:%S") }} <span class="muted">(UTC)</span>
+                </span>
+            </td>
+            <td>{{ r.club_id or "" }}</td>
+            <td>{{ r.action or "" }}</td>
+            <td>{{ r.note or "" }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="4" class="muted">該当するログはありません。</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // data-iso（UTC）→ ローカルタイム（閲覧者環境）に変換して表示
+  (function () {
+    const nodes = document.querySelectorAll('.created-at');
+    nodes.forEach(el => {
+      const iso = el.getAttribute('data-iso');
+      if (!iso) return;
+      try {
+        const d = new Date(iso);
+        // YYYY-MM-DD HH:MM:SS 形式に整形
+        const pad = n => String(n).padStart(2, '0');
+        const y = d.getFullYear();
+        const m = pad(d.getMonth() + 1);
+        const day = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const mm = pad(d.getMinutes());
+        const ss = pad(d.getSeconds());
+        el.textContent = `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
+      } catch (e) {
+        // 失敗時は何もしない（フォールバックのUTC表記のまま）
+      }
+    });
+  })();
+</script>
+
+</body></html>

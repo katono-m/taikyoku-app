@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">成績編集（個別）</h2>
+
+<div style="text-align:center; margin-bottom: 0.75rem;">
+  <a class="btn btn-outline" href="{{ url_for('results_edit_index', start=request.args.get('start'), end=request.args.get('end')) }}">← 一覧に戻る</a>
+</div>
+
+{% if match and club and match.club_id != club.id %}
+  <div style="max-width:900px;margin:0 auto 0.75rem; padding:0.6rem 0.8rem; border:1px solid #f5c2c7; background:#f8d7da; color:#842029; border-radius:8px;">
+    他クラブの対局データです。編集・保存はできません（閲覧のみ）。
+  </div>
+{% endif %}
+
+<form method="post"
+      action="{% if match.id %}{{ url_for('results_edit_detail', match_id=match.id, start=request.args.get('start'), end=request.args.get('end')) }}{% else %}{{ url_for('results_edit_new', start=request.args.get('start'), end=request.args.get('end')) }}{% endif %}"
+      style="max-width: 900px; margin: 0 auto;">
+
+  <fieldset {% if match and club and match.club_id != club.id %}disabled{% endif %}>
+
+  <!-- 1) 対局日時 -->
+  <div style="margin-bottom: 1rem;">
+    <label>対局日時：</label>
+    <input type="datetime-local" name="ended_at"
+        value="{{ ended_at_input }}">
+  </div>
+
+  <!-- 2) 対局者 -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    <div>
+      <label>対局者1：</label>
+        <select name="player1_id" required {% if match and club and match.club_id != club.id %}disabled{% endif %}>
+        <option value="">-- 選択 --</option>
+
+        {# まず、クラブ内 members に既存の player1_id が含まれるかを判定 #}
+        {% set ns1 = namespace(has_p1=false) %}
+        {% for m in members %}
+          {% if m.id == match.player1_id %}{% set ns1.has_p1 = true %}{% endif %}
+        {% endfor %}
+        {% if not ns1.has_p1 and match.player1_id %}
+          <option value="{{ match.player1_id }}" selected disabled>（他クラブの会員／変更不可）</option>
+        {% endif %}
+
+        {% for m in members %}
+            <option value="{{ m.id }}" data-grade="{{ m.grade }}" {{ 'selected' if m.id == match.player1_id else '' }}>
+            {{ m.name }}｜{{ m.kana }}（{{ m.grade }}）
+            </option>
+        {% endfor %}
+        </select>
+    </div>
+    <div>
+      <label>対局者2：</label>
+        <select name="player2_id" required {% if match and club and match.club_id != club.id %}disabled{% endif %}>
+        <option value="">-- 選択 --</option>
+
+        {% set ns2 = namespace(has_p2=false) %}
+        {% for m in members %}
+          {% if m.id == match.player2_id %}{% set ns2.has_p2 = true %}{% endif %}
+        {% endfor %}
+        {% if not ns2.has_p2 and match.player2_id %}
+          <option value="{{ match.player2_id }}" selected disabled>（他クラブの会員／変更不可）</option>
+        {% endif %}
+
+        {% for m in members %}
+            <option value="{{ m.id }}" data-grade="{{ m.grade }}" {{ 'selected' if m.id == match.player2_id else '' }}>
+            {{ m.name }}｜{{ m.kana }}（{{ m.grade }}）
+            </option>
+        {% endfor %}
+        </select>
+    </div>
+  </div>
+
+  <!-- 3) 駒落ち / 種別 -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    <div>
+      <label>駒落ち：</label>
+      <select name="handicap">
+        <option value="">-- 未選択 --</option>
+        {% for h in handicap_options %}
+          <option value="{{ h }}" {{ 'selected' if h == (match.handicap or '') else '' }}>{{ h }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>対局種別：</label>
+      <select name="match_type">
+        {% set mt = match.match_type or '認定戦' %}
+        <option value="認定戦" {{ 'selected' if mt == '認定戦' else '' }}>棋力認定戦</option>
+        <option value="指導"   {{ 'selected' if mt == '指導'   else '' }}>指導対局</option>
+        <option value="フリー" {{ 'selected' if mt == 'フリー' else '' }}>フリー対局</option>
+        <option value="初回認定" {{ 'selected' if mt == '初回認定' else '' }}>初回認定戦</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 4) 勝敗 -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    <div>
+      <label>対局者1の結果：</label>
+      <select name="result_p1">
+        {% set r = r1.result or '' %}
+        <option value="">-- 未選択 --</option>
+        <option value="○" {{ 'selected' if r == '○' else '' }}>○</option>
+        <option value="●" {{ 'selected' if r == '●' else '' }}>●</option>
+        <option value="△" {{ 'selected' if r == '△' else '' }}>△</option>
+        <option value="◇" {{ 'selected' if r == '◇' else '' }}>◇</option>
+        <option value="◆" {{ 'selected' if r == '◆' else '' }}>◆</option>
+      </select>
+    </div>
+    <div>
+      <label>対局者2の結果：</label>
+      <select name="result_p2">
+        {% set r = r2.result or '' %}
+        <option value="">-- 未選択 --</option>
+        <option value="○" {{ 'selected' if r == '○' else '' }}>○</option>
+        <option value="●" {{ 'selected' if r == '●' else '' }}>●</option>
+        <option value="△" {{ 'selected' if r == '△' else '' }}>△</option>
+        <option value="◇" {{ 'selected' if r == '◇' else '' }}>◇</option>
+        <option value="◆" {{ 'selected' if r == '◆' else '' }}>◆</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 5) 昇段先の棋力 / 6) リセット有無 -->
+  <div style="border:1px solid #eee; padding:0.75rem; border-radius:8px; margin-bottom:1rem;">
+    <div style="font-weight:600; margin-bottom:0.5rem;">昇段級（必要な場合のみ）</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div>
+        <label>対局者1の昇段級先：</label>
+        <select name="new_grade_p1">
+            <option value="">（指定なし）</option>
+            {% for g in strength_names %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label>
+            <input type="checkbox" name="reset_p1"> 勝敗カウントをリセット
+        </label>
+        </div>
+
+        <div>
+        <label>対局者2の昇段級先：</label>
+        <select name="new_grade_p2">
+            <option value="">（指定なし）</option>
+            {% for g in strength_names %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label>
+            <input type="checkbox" name="reset_p2"> 勝敗カウントをリセット
+        </label>
+        </div>
+    </div>
+    <div style="color:#666; font-size:0.9em; margin-top:0.5rem;">
+      ※ リセットは昇段級があった場合のみ有効です。
+    </div>
+  </div>
+
+  <!-- 7) 備考（両者） -->
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+    <div>
+      <label>備考（対局者1側）：</label>
+      <input type="text" name="note_p1" value="{{ r1.note or '' }}" style="width:100%;" maxlength="50">
+    </div>
+    <div>
+      <label>備考（対局者2側）：</label>
+      <input type="text" name="note_p2" value="{{ r2.note or '' }}" style="width:100%;" maxlength="50">
+    </div>
+  </div>
+
+  <!-- 対局時点の棋力（表示の整合用：サーバ側で既定値セットあり） -->
+  <input type="hidden" name="grade_at_time_p1" value="{{ r1.grade_at_time or '' }}">
+  <input type="hidden" name="grade_at_time_p2" value="{{ r2.grade_at_time or '' }}">
+
+  <input type="hidden" name="_start" value="{{ request.args.get('start') or '' }}">
+  <input type="hidden" name="_end"   value="{{ request.args.get('end') or '' }}">
+
+  </fieldset>
+
+  <div style="text-align:center; margin-top: 1rem;">
+    <button type="submit" class="btn" {% if match and club and match.club_id != club.id %}disabled{% endif %}>保存</button>
+    <a class="btn btn-outline" href="{{ url_for('results_edit_index', start=request.args.get('start'), end=request.args.get('end')) }}">キャンセル</a>
+  </div>
+
+  <div style="color:#666; font-size:0.9em; margin-top:0.75rem;">
+    ※ 0.5勝（◇ / 未認定相手への○）や、初回認定戦で認定済みが未認定に負けた◆のノーカウントなど、集計上の特例は既存ロジックに準拠します（本ページは値を保存するのみ）。
+  </div>
+</form>
+
+<script>
+// --- 成績編集フォーム バリデーション ---
+(function() {
+  const form = document.querySelector('form[method="post"]');
+  if (!form) return;
+
+  // result の相互補完用マップ（画面側の見た目も整える）
+  const pairMap = { "○":"●", "●":"○", "△":"△", "◇":"●", "◆":"○" };
+  const invMap  = { "○":"●", "●":"○", "△":"△", "◇":"●", "◆":"○" };
+
+  form.addEventListener('submit', function(e) {
+    // 1) 必須：対局者1/2
+    const selP1 = form.querySelector('select[name="player1_id"]');
+    const selP2 = form.querySelector('select[name="player2_id"]');
+    const p1 = selP1 ? selP1.value : "";
+    const p2 = selP2 ? selP2.value : "";
+    if (!p1 || !p2) {
+      e.preventDefault();
+      alert("対局者1と対局者2を選択してください。");
+      return;
+    }
+
+    // 2) 同一会員の重複防止
+    if (p1 === p2) {
+      e.preventDefault();
+      alert("対局者1と対局者2が同一です。別の会員を選んでください。");
+      return;
+    }
+
+    // 3) 初回認定の整合性チェック（未認定がちょうど1名）
+    const mtSel = form.querySelector('select[name="match_type"]');
+    const matchType = mtSel ? mtSel.value : "認定戦";
+    if (matchType === "初回認定") {
+      const opt1 = selP1.selectedOptions[0];
+      const opt2 = selP2.selectedOptions[0];
+      const g1 = (opt1 && opt1.dataset.grade) ? opt1.dataset.grade.trim() : "";
+      const g2 = (opt2 && opt2.dataset.grade) ? opt2.dataset.grade.trim() : "";
+      const isUnranked1 = (g1 === "未認定");
+      const isUnranked2 = (g2 === "未認定");
+
+      if ( (isUnranked1 && isUnranked2) || (!isUnranked1 && !isUnranked2) ) {
+        e.preventDefault();
+        alert("初回認定戦は「未認定」と「認定済み」の組合せで入力してください。");
+        return;
+      }
+    }
+
+    // 4) 勝敗の相互補完（片側だけ選択されていたらもう片側を自動補完）
+    const r1Sel = form.querySelector('select[name="result_p1"]');
+    const r2Sel = form.querySelector('select[name="result_p2"]');
+    const r1 = r1Sel ? (r1Sel.value || "") : "";
+    const r2 = r2Sel ? (r2Sel.value || "") : "";
+
+    if (r1 && !r2 && pairMap[r1]) {
+      r2Sel.value = pairMap[r1];
+    } else if (r2 && !r1 && invMap[r2]) {
+      r1Sel.value = invMap[r2];
+    }
+
+    // 5) 片側が◇のときの注意メモ（任意：送信は許可）
+    //    集計側の既存ロジックで0.5勝/ノーカウントを扱うため、ここでは案内のみ。
+    if (
+      ((r1 === "◇" || r1 === "◆") && matchType !== "初回認定") ||
+      ((r2 === "◇" || r2 === "◆") && matchType !== "初回認定")
+    ) {
+      // 初回認定以外で◇や◆が入っていると違和感があるので注意喚起（送信は止めない）
+      const proceed = confirm("対局種別が初回認定以外で『◇』または『◆』が選択されています。よろしければそのまま送信します。");
+      if (!proceed) {
+        e.preventDefault();
+        return;
+      }
+    }
+  });
+})();
+</script>
+
+{% endblock %}

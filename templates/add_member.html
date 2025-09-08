@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align: center; margin-bottom: 1rem;">新規会員登録</h2>
+
+<style>
+  .member-form-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .member-form-box {
+    background-color: #fff;
+    padding: 2rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    min-width: 340px;
+    text-align: left;
+  }
+
+  .member-form-box p {
+    margin-bottom: 1rem;
+  }
+
+  .member-form-box input[type="text"],
+  .member-form-box select {
+    width: 100%;
+    padding: 6px;
+    font-size: 1rem;
+  }
+
+  .member-form-box input[type="submit"] {
+    margin-top: 1rem;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .member-form-box input[type="submit"]:hover {
+    background-color: #0056b3;
+  }
+
+  .back-link {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .back-link a {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #2c3e50;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+  }
+
+  .back-link a:hover {
+    background-color: #0056b3;
+  }
+</style>
+
+<div class="member-form-container">
+<form method="POST" class="member-form-box">
+  {{ form.csrf_token }}
+
+  {# ★ id は内部PK（自動採番）なので Hidden のみ埋め込む。ラベルは表示しない #}
+  {{ form.id() }}
+
+  <p>{{ form.member_code.label }} {{ form.member_code() }}</p>
+  <p>{{ form.name.label }} {{ form.name() }}</p>
+  <p>{{ form.kana.label }} {{ form.kana() }}</p>
+  <p>{{ form.grade.label }} {{ form.grade() }}</p>
+  <p>{{ form.member_type.label }} {{ form.member_type() }}</p>
+  <p><input type="submit" value="登録"></p>
+</form>
+</div>
+
+<div class="back-link">
+  <a href="{{ url_for('members') }}">← 会員名簿に戻る</a>
+</div>
+
+{% endblock %}

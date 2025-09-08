@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">勝敗カウント編集（ブラインド勝敗）</h2>
+
+<p style="text-align:center; color:#666; margin-top:-6px;">
+  ※ここでは編集画面への遷移のみを行います。実際の「カウント日時」「勝敗」は各個人の編集画面で入力します。
+</p>
+
+<!-- ▼ 追加：成績管理へ戻るボタン（成績編集一覧と同じ導線方針） -->
+<div style="display:flex; justify-content:center; gap:0.75rem; margin: 0.75rem 0 1rem;">
+  <a class="btn btn-outline" href="{{ url_for('results_index') }}">成績管理に戻る</a>
+</div>
+<!-- ▲ 追加ここまで -->
+
+<div style="max-height:560px; overflow-y:auto; border:1px solid #ddd; border-radius:6px;">
+  <table class="table" style="width:100%; table-layout:fixed; border-collapse:collapse;">
+    <colgroup>
+      <col style="width:8rem;">   <!-- 会員ID -->
+      <col style="width:16rem;">  <!-- 名前 -->
+      <col style="width:12rem;">  <!-- 棋力 -->
+      <col style="width:auto;">   <!-- 操作 -->
+    </colgroup>
+    <thead style="position:sticky; top:0; background:#fff; z-index:2;">
+      <tr>
+        <th style="text-align:left; padding:6px 8px;">会員ID</th>
+        <th style="text-align:left; padding:6px 8px;">名前</th>
+        <th style="text-align:left; padding:6px 8px;">棋力</th>
+        <th style="text-align:left; padding:6px 8px;">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+      <tr data-member-id="{{ m.id }}">
+        <!-- 表示を id -> member_code に変更 -->
+        <td style="text-align:left; padding:6px 8px;">{{ m.member_code }}</td>
+        <td style="text-align:left; padding:6px 8px;">
+          <a href="{{ url_for('results_member', member_id=m.id) }}" target="_blank" rel="noopener" title="個人成績を新しいタブで表示">
+            {{ m.name }}
+          </a>
+        </td>
+        <td style="text-align:left; padding:6px 8px;">{{ m.grade }}</td>
+        <td style="text-align:left; padding:6px 8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <!-- 個人の勝敗カウント編集へ遷移（新規個人画面） -->
+          <a
+            class="btn"
+            href="{{ url_for('blind_counts_member', member_id=m.id) }}"
+            style="text-decoration:none;"
+          >勝敗カウント編集</a>
+
+          <!-- 既存のリセット編集（実装位置は変更なし：仕様どおり） -->
+          <a
+            class="btn btn-outline"
+            href="{{ url_for('counter_resets_edit', member_id=m.id) }}"
+            style="text-decoration:none;"
+          >勝敗カウントリセット編集</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">個人成績（{{ member.name }}）</h2>
+
+<!-- 期間表示 & 戻る/出力 -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin: 0.5rem 0 1rem;">
+  <div>
+    集計期間：
+    {% if start %}{{ start }}{% else %}（指定なし）{% endif %} 〜
+    {% if end %}{{ end }}{% else %}（指定なし）{% endif %}
+  </div>
+  <div style="display:flex; gap: .5rem;">
+    <a class="btn" href="{{ url_for('results_index', start=start, end=end) }}">← 一覧に戻る</a>
+    <a class="btn btn-outline"
+       href="{{ url_for('results_member_export_csv', member_id=member.id, start=start, end=end) }}">
+       CSV出力
+    </a>
+  </div>
+</div>
+
+<!-- サマリ -->
+<div style="display:grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 1rem;">
+  <div class="card" style="padding:0.75rem;">
+    <div style="font-size:12px; color:#666;">名前</div>
+    <div style="font-size:18px; font-weight:600;">{{ member.name }}</div>
+  </div>
+  <div class="card" style="padding:0.75rem;">
+    <div style="font-size:12px; color:#666;">現在の棋力</div>
+    <div style="font-size:18px; font-weight:600;">{{ member.grade }}</div>
+  </div>
+  <div class="card" style="padding:0.75rem; text-align:right;">
+    <div style="font-size:12px; color:#666;">対局数</div>
+    <div style="font-size:18px; font-weight:600;">{{ games }}</div>
+  </div>
+  <div class="card" style="padding:0.75rem; text-align:right;">
+    <div style="font-size:12px; color:#666;">勝数</div>
+    <div style="font-size:18px; font-weight:600;"> {{ ('{:.1f}'.format(wins)).rstrip('0').rstrip('.') }} </div>
+  </div>
+  <div class="card" style="padding:0.75rem; text-align:right;">
+    <div style="font-size:12px; color:#666;">勝率</div>
+    <div style="font-size:18px; font-weight:600;">
+      {% if games > 0 %}{{ "{:.1%}".format(winrate) }}{% else %}-{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- 昇段級履歴 -->
+<h3 style="margin-top:1rem;">昇段級履歴</h3>
+<div style="overflow-x:auto; margin-bottom:1rem;">
+  <table class="table" style="width:100%; min-width:700px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; white-space:nowrap;">変更日</th>
+        <th style="text-align:left;">理由</th>
+        <th style="text-align:left;">前</th>
+        <th style="text-align:left;">後</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if histories and histories|length > 0 %}
+        {% for h in histories %}
+        <tr>
+          <td style="text-align:left;">
+            {% if h.changed_at %}{{ h.changed_at.date().isoformat() }}{% else %}-{% endif %}
+          </td>
+          <td style="text-align:left;">{{ h.reason or "" }}</td>
+          <td style="text-align:left;">{{ h.before_grade or "" }}</td>
+          <td style="text-align:left;">{{ h.after_grade or "" }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="4" style="text-align:center; padding:0.8rem;">履歴なし</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 全対局一覧（古い順） -->
+<h3>対局一覧</h3>
+<div style="overflow-x:auto;">
+  <table class="table" style="width:100%; min-width:900px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; white-space:nowrap;">日付</th>
+        <th style="text-align:left;">相手</th>
+        <th style="text-align:left;">相手棋力</th>
+        <th style="text-align:left;">駒落ち</th>
+        <th style="text-align:left;">勝敗</th>
+        <th style="text-align:left;">備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if rows and rows|length > 0 %}
+        {% for r in rows %}
+        <tr>
+          <td style="text-align:left; white-space:nowrap;">{{ r.date }}</td>
+          <td style="text-align:left;">{{ r.opponent_name }}</td>
+          <td style="text-align:left;">{{ r.opponent_grade }}</td>
+          <td style="text-align:left;">{{ r.handicap }}</td>
+          <td style="text-align:left;">{{ r.result }}</td>
+          <td style="text-align:left;">{{ r.note }}</td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="6" style="text-align:center; padding:0.8rem;">データがありません</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

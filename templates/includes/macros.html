@@ -1,0 +1,10 @@
+{# templates/includes/macros.html #}
+{% macro sort_link(column_name, display) %}
+  {% set next_order = 'desc' if order == 'asc' and sort == column_name else 'asc' %}
+  <a href="{{ url_for('match_edit', sort=column_name, order=next_order) }}">
+    {{ display }}
+    {% if sort == column_name %}
+      {{ '▲' if order == 'asc' else '▼' }}
+    {% endif %}
+  </a>
+{% endmacro %}

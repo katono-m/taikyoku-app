@@ -1,0 +1,30 @@
+# Python / Flask
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+env/
+venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local DB / artifacts
+database/app.db
+instance/
+*.sqlite
+*.sqlite3
+
+# Alembic cache
+migrations/*/__pycache__/
+
+# Logs
+*.log
+
+# Environment files (必要なら)
+.env

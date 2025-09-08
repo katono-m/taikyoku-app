@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">昇段級履歴</h2>
+
+<!-- 期間フィルタ -->
+<form method="get" action="{{ url_for('grade_history_index') }}" style="margin: 1rem 0; display:flex; gap: 1rem; align-items: center; justify-content:center;">
+  <div>
+    <label>開始日：</label>
+    <input type="date" name="start" value="{{ start or '' }}">
+  </div>
+  <div>
+    <label>終了日：</label>
+    <input type="date" name="end" value="{{ end or '' }}">
+  </div>
+  <button type="submit" class="btn">表示</button>
+
+  <!-- CSV出力 -->
+  <a class="btn btn-outline" style="margin-left:0.5rem;"
+     href="{{ url_for('grade_history_export_csv', start=start, end=end) }}">
+     CSV出力
+  </a>
+</form>
+
+<div style="text-align:center; margin:.5rem 0 1rem;">
+  <a href="{{ url_for('results_index', start=start, end=end) }}" class="btn btn-sm btn-outline">← 成績管理に戻る</a>
+</div>
+
+<div style="max-height:500px; overflow-y:auto; overflow-x:auto; border:1px solid #ccc;">
+  <table class="table" style="width:100%; min-width:960px; border-collapse:collapse;">
+    <thead style="position:sticky; top:0; background:#fff; z-index:1;">
+      <tr>
+        <th style="text-align:left;">日にち</th>
+        <th style="text-align:left;">名前</th>
+        <th style="text-align:left;">よみがな</th>
+        <th style="text-align:left;">前の棋力</th>
+        <th style="text-align:left;">後の棋力</th>
+        <th style="text-align:left;">備考</th>
+        <th style="text-align:center; width:12rem;">操作</th> <!-- ← 少し広げる -->
+      </tr>
+    </thead>
+    <tbody>
+      {% if rows and rows|length > 0 %}
+        {% for r in rows %}
+        <tr data-id="{{ r.id }}">
+          <td style="text-align:left; white-space:nowrap;">{{ to_jst_date_str(r.changed_at) }}</td>
+          <td style="text-align:left;">{{ r.name }}</td>
+          <td style="text-align:left;">{{ r.kana }}</td>
+          <td style="text-align:left;">{{ r.before_grade }}</td>
+          <td style="text-align:left;">{{ r.after_grade }}</td>
+          <td style="text-align:left;">
+            <div style="display:flex; gap:.5rem; align-items:center; max-width:520px;">
+              <input
+                type="text"
+                value="{{ r.reason or '' }}"
+                data-reason-input="{{ r.id }}"
+                style="width:100%;"
+                placeholder="例）大会昇級／手動昇段 など"
+                maxlength="50"
+              />
+              <button
+                class="btn btn-sm save-reason"
+                onclick="saveReason('{{ r.id }}')"
+                title="備考を保存します">
+                保存
+              </button>
+            </div>
+          </td>
+          <td style="text-align:center;">
+            <button class="btn btn-sm btn-danger"
+              onclick="deleteHistory('{{ r.id }}')"
+              title="※活動外成績入力に由来する履歴は、関連メモも同時に削除されます。">
+              昇段級取消
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="7" style="text-align:center; padding:1rem;">データがありません</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  /* 「保存」ボタンのつぶれ対策 */
+  .btn-sm.save-reason {
+    width: auto !important;
+    min-width: 4.5rem;          /* 2文字＋余裕を確保 */
+    padding: .25rem .6rem !important;
+    white-space: nowrap;
+    aspect-ratio: unset !important; /* 正方形化の影響を無効化 */
+    line-height: 1.2;
+  }
+</style>
+
+<script>
+  async function deleteHistory(id) {
+    if (!confirm("この昇段級履歴を取消（DBから削除）します。よろしいですか？\n※会員の現在の棋力は自動では戻りません。会員名簿から手動で棋力を変更してください。")) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/grade_history/delete", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ id })
+      });
+      const json = await res.json();
+      if (json.success) {
+        // 行を消す
+        const tr = document.querySelector(`tr[data-id="${id}"]`);
+        if (tr) tr.remove();
+        alert("削除しました。");
+      } else {
+        alert(json.message || "削除に失敗しました。");
+      }
+    } catch (e) {
+      alert("通信エラーが発生しました。");
+    }
+  }
+
+  // ▼▼ 追加：備考保存API呼び出し
+  async function saveReason(id) {
+    const input = document.querySelector(`input[data-reason-input="${id}"]`);
+    if (!input) return;
+    const button = event?.currentTarget;
+    const oldLabel = button ? button.textContent : "";
+
+    try {
+      if (button) { button.disabled = true; button.textContent = "保存中..."; }
+      const res = await fetch("/api/grade_history/reason", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ id, reason: input.value })
+      });
+      const json = await res.json();
+      if (json.success) {
+        // 軽いフィードバック
+        if (button) { button.textContent = "保存済"; setTimeout(() => { button.textContent = "保存"; }, 1200); }
+      } else {
+        alert(json.message || "保存に失敗しました。");
+      }
+    } catch (e) {
+      alert("通信エラーが発生しました。");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+  // ▲▲ 追加ここまで
+</script>
+
+{% endblock %}

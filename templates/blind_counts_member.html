@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">勝敗カウント編集（個人）</h2>
+
+<div style="max-width:900px; margin: 0 auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <div>
+      <div style="font-size:1.1rem; font-weight:bold;">{{ member.name }}（ID: {{ member.member_code }}）</div>
+      <div style="color:#666;">現在の棋力：{{ member.grade }}</div>
+    </div>
+    <div>
+      <a class="btn btn-outline" href="{{ url_for('blind_counts_index') }}">一覧に戻る</a>
+    </div>
+  </div>
+
+  <p style="color:#666; margin: 8px 0 16px;">
+    ※ここで入力した勝敗は「昇段級カウント」にのみ反映され、成績表・個人成績には一切表示されません。
+  </p>
+
+  <!-- カウント日時 -->
+  <div style="margin-bottom: 12px;">
+    <label style="display:block; margin-bottom:4px;">カウント開始日時（JST）：</label>
+    <input id="bc-dt" type="datetime-local"
+          value="{{ format_utc_naive_to_local_input(counted_from) if counted_from else '' }}"
+          style="padding:6px; width:240px;">
+  </div>
+
+  <!-- 記号の凡例 -->
+  <div style="font-size:0.9rem; color:#555; margin: 6px 0 10px;">
+    凡例：○=1勝、●=負、△=分、◇=0.5勝、◆=ノーカウント負（初回認定の特例等）<br>
+    並びは「←古い　新しい→」。左から順に古い対局として扱います。
+  </div>
+
+  <!-- 勝敗カウント（プルダウン行を横に並べる） -->
+  <div>
+    <label style="display:block; margin-bottom:4px;">勝敗（←古い　新しい→）：</label>
+
+    <div id="sym-wrap" style="display:flex; gap:8px; flex-wrap:wrap;">
+      {% set syms = symbols or [] %}
+      {% for s in syms %}
+        <div class="sym-row" style="display:flex; flex-direction:column; align-items:center;">
+            <select class="bc-sym" style="min-width:4.5rem; padding:4px;">
+            {% set ORDER = ['○','●','△','◇','◆'] %}
+            {% for opt in ORDER if opt in allowed_symbols %}
+                <option value="{{ opt }}" {% if s == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+            </select>
+          <div style="font-size:11px; color:#888; margin-top:2px;">{{ loop.index }}</div>
+        </div>
+      {% endfor %}
+
+      {% if syms|length == 0 %}
+        <!-- 初期ゼロ件なら何も表示しない（利用者が追加ボタンで増やす） -->
+      {% endif %}
+    </div>
+
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button id="btn-add" class="btn" type="button">＋ 追加</button>
+      <button id="btn-del" class="btn btn-outline" type="button">－ 削除</button>
+    </div>
+  </div>
+
+  <!-- 保存 -->
+  <div style="margin-top:16px;">
+    <button id="btn-save" class="btn" type="button">保存</button>
+    <span id="save-msg" style="margin-left:10px; color:#666;"></span>
+  </div>
+</div>
+
+<script>
+  const MEMBER_ID = "{{ member.id }}";
+  const ALLOWED = {{ allowed_symbols_json|tojson|safe }};
+  const ORDER = ["○","●","△","◇","◆"];
+  const ALLOWED_ORDERED = ORDER.filter(x => ALLOWED.includes(x));
+
+  const wrap = document.getElementById("sym-wrap");
+  const dtEl = document.getElementById("bc-dt");
+  const msg = document.getElementById("save-msg");
+
+  function renumber() {
+    // 並び番号（古い→新しい）
+    Array.from(wrap.querySelectorAll(".sym-row")).forEach((row, idx) => {
+      const label = row.querySelector("div");
+      if (label) label.textContent = (idx + 1);
+    });
+  }
+
+    function addOne(defaultValue = null) {
+    const div = document.createElement("div");
+    div.className = "sym-row";
+    div.style = "display:flex; flex-direction:column; align-items:center;";
+
+    const sel = document.createElement("select");
+    sel.className = "bc-sym";
+    sel.style = "min-width:4.5rem; padding:4px;";
+
+    ALLOWED_ORDERED.forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        sel.appendChild(o);
+    });
+    if (defaultValue && ALLOWED_ORDERED.includes(defaultValue)) {
+        sel.value = defaultValue;
+    }
+
+    const idx = document.createElement("div");
+    idx.style = "font-size:11px; color:#888; margin-top:2px;";
+    idx.textContent = "0";
+
+    div.appendChild(sel);
+    div.appendChild(idx);
+    wrap.appendChild(div);
+    renumber();
+    }
+
+
+  function delOne() {
+    const rows = wrap.querySelectorAll(".sym-row");
+    if (rows.length > 0) {
+      wrap.removeChild(rows[rows.length - 1]);
+    }
+    renumber();
+  }
+
+  document.getElementById("btn-add").addEventListener("click", () => addOne());
+  document.getElementById("btn-del").addEventListener("click", delOne);
+
+  document.getElementById("btn-save").addEventListener("click", async () => {
+    msg.textContent = "";
+
+    const counted_from = (dtEl.value || "").trim();
+    if (!counted_from) {
+      alert("カウント開始日時を入力してください。");
+      dtEl.focus();
+      return;
+    }
+
+    const symbols = Array.from(wrap.querySelectorAll(".bc-sym")).map(sel => sel.value).filter(v => !!v);
+
+    try {
+      const res = await fetch("/api/blind_counts/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: MEMBER_ID, counted_from, symbols })
+      });
+      const js = await res.json();
+      if (js.success) {
+        msg.style.color = "#2c7";
+        msg.textContent = "保存しました。";
+      } else {
+        msg.style.color = "#c22";
+        msg.textContent = "保存に失敗：" + (js.message || "");
+      }
+    } catch (e) {
+      msg.style.color = "#c22";
+      msg.textContent = "通信エラーが発生しました。";
+    }
+  });
+</script>
+
+{% endblock %}

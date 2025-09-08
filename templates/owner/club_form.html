@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>クラブ編集</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<h2 style="text-align:center;">
+  クラブ{{ '編集' if club else '新規作成' }}
+</h2>
+
+<!-- ここから追加：フラッシュ表示 -->
+<div style="max-width:680px; margin:0.75rem auto;">
+  {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="flash {{ category }}" style="
+             margin-bottom:.5rem;padding:.6rem .75rem;border-radius:6px;
+             border:1px solid #fecaca;background:#fef2f2;color:#991b1b;">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+<!-- 追加ここまで -->
+
+<form method="post" action="">
+  <div style="max-width:680px; margin:0 auto; display:grid; grid-template-columns: 160px 1fr; gap:10px; align-items:center;">
+    {% if not club %}
+      <label>クラブID</label>
+      <!-- 英数と . _ % + - のみ／30文字まで -->
+      <input
+        type="text"
+        name="id"
+        placeholder="半角30文字以内（英数と . _ % + -）"
+        required
+        maxlength="30"
+        pattern="[A-Za-z0-9._%+\-]{1,30}"
+        title="英数字と . _ % + - のみ、30文字以内で入力してください">
+    {% else %}
+      <label>クラブID</label>
+      <div>{{ club.id }}</div>
+    {% endif %}
+
+    <label>教室名</label>
+    <input type="text" name="name" value="{{ (form.name if form else club.name) if club else (form.name if form else '') }}" required>
+
+    <label>契約メモ</label>
+    <textarea name="memo" rows="3">{{ (form.memo if form else club.memo) if club else (form.memo if form else '') }}</textarea>
+
+    <label>パスワード（再設定）</label>
+    <!-- 英数と . _ % + - @ のみ／8〜50文字（空欄OK＝変更なし） -->
+    <input
+      type="password"
+      name="password"
+      placeholder="英数と . _ % + - @（8〜50文字）※空欄なら変更なし"
+      maxlength="50"
+      pattern="[A-Za-z0-9._%+\-@]{8,50}"
+      title="英数字と . _ % + - @ のみ、8〜50文字で入力してください（空欄なら変更しません）">
+  </div>
+
+  <div style="text-align:center; margin-top:1rem;">
+    <button class="btn" type="submit">保存</button>
+    <a class="btn btn-outline" href="{{ url_for('owner_clubs_index') }}">戻る</a>
+  </div>
+</form>
+
+</body></html>

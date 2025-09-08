@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>クラブ一覧</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<style>
+  .toolbar {
+    display:flex; gap:.5rem; align-items:center; margin-bottom:1rem;
+  }
+  .tables { display: grid; gap: 1.5rem; }
+  .table-wrap {
+    border:1px solid #ddd; border-radius:.5rem; overflow:hidden;
+  }
+  .table-header {
+    position: sticky; top:0; background:#f8f9fa; z-index:1;
+    border-bottom:1px solid #ddd; font-weight:600;
+  }
+  .table-scroll { max-height: 70vh; overflow: auto; }
+  table.list { width:100%; border-collapse:collapse; }
+  table.list th, table.list td { padding:.5rem .75rem; border-bottom:1px solid #eee; white-space: nowrap; }
+  table.list tbody tr:nth-child(odd) { background:#fafafa; }
+  .muted { color:#6c757d; font-size:.9em; }
+  .btn { appearance:none; border:1px solid #ccc; background:white; padding:.35rem .6rem; border-radius:.4rem; cursor:pointer; }
+  .btn-primary { background:#0d6efd; color:white; border-color:#0d6efd; }
+  .btn-danger { border-color:#dc3545; color:#dc3545; background:white; }
+  .btn-outline { background:white; }
+  .actions { display:flex; gap:.35rem; flex-wrap:nowrap; align-items:center; }
+  .badge { display:inline-block; padding:.1rem .4rem; border-radius:.3rem; font-size:.85em; border:1px solid #ddd; background:#fff; }
+  .badge.suspended { color:#856404; background:#fff3cd; border-color:#ffeeba; }
+  .badge.deleted { color:#721c24; background:#f8d7da; border-color:#f5c6cb; }
+</style>
+
+<h2>クラブ一覧</h2>
+
+<!-- ツールバー：左に監査ログ、右端にログアウト -->
+<div class="toolbar"
+     style="margin:.5rem 0 1rem; display:flex; align-items:center; gap:.5rem; justify-content:space-between;">
+  <div style="display:flex; gap:.5rem; align-items:center;">
+    <a class="btn" href="{{ url_for('owner_audit_index') }}">監査ログ</a>
+    <a class="btn btn-primary" href="{{ url_for('owner_clubs_new') }}">クラブ新規作成</a>
+  </div>
+  <div>
+    <a class="btn" href="{{ url_for('owner_logout') }}">ログアウト</a>
+  </div>
+</div>
+
+<!-- オーナーID／パスワード設定（ログイン後） -->
+<div class="owner-auth-box"
+     style="border:1px solid #ddd; border-radius:.5rem; padding:.75rem; margin:.5rem 0 1rem;">
+  <h3 style="margin:.25rem 0 .75rem;">オーナー認証の設定</h3>
+  <form method="post" action="{{ url_for('owner_auth_update') }}"
+        style="display:grid; grid-template-columns:1fr 1fr auto; gap:.5rem; align-items:end;">
+    <label style="display:grid; gap:.25rem;">
+      <span>オーナーID</span>
+      <input type="text" name="owner_id"
+             value="{{ current_owner_id or '' }}"
+             style="padding:.45rem .6rem; border:1px solid #ccc; border-radius:.4rem;">
+    </label>
+    <label style="display:grid; gap:.25rem;">
+      <span>新しいパスワード（空なら変更しない）</span>
+      <input type="password" name="password"
+             placeholder="********"
+             style="padding:.45rem .6rem; border:1px solid #ccc; border-radius:.4rem;">
+    </label>
+    <button type="submit" class="btn"
+            style="padding:.45rem .8rem; height:2.2rem;">保存</button>
+  </form>
+  <p class="muted" style="margin:.5rem 0 0; font-size:.9em; color:#6c757d;">
+    ※ パスワード欄を空のまま保存すると、パスワードは変更されません。
+  </p>
+</div>
+
+<div class="tables">
+
+  <!-- 現役・停止中 -->
+  <section>
+    <h3>契約中のクラブ</h3>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table class="list">
+          <thead class="table-header">
+            <tr>
+              <th style="width:160px;">クラブID</th>
+              <th style="width:220px;">教室名</th>
+              <th style="width:120px;">状態</th>
+              <th style="width:160px;">作成日</th>
+              <th style="width:180px;">最終ログイン</th>
+              <th>契約メモ</th>
+              <th style="width:300px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if active and active|length > 0 %}
+              {% for c in active %}
+                <tr>
+                  <td>{{ c.id }}</td>
+                  <td>{{ c.name }}</td>
+                  <td>
+                    {% if c.status == 'active' %}
+                      <span class="badge">active</span>
+                    {% elif c.status == 'suspended' %}
+                      <span class="badge suspended">suspended</span>
+                    {% else %}
+                      <span class="badge">{{ c.status or '-' }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ (c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '-') }}</td>
+                  <td>{{ (c.last_login_at.strftime('%Y-%m-%d %H:%M') if c.last_login_at else '-') }}</td>
+                  <td style="white-space: normal;">{{ c.memo or '' }}</td>
+                  <td>
+                    <div class="actions">
+                      <a class="btn" href="{{ url_for('owner_clubs_edit', club_id=c.id) }}">編集</a>
+
+                      {% if c.status == 'active' %}
+                        <form method="post" action="{{ url_for('owner_clubs_suspend', club_id=c.id) }}" style="display:inline;">
+                          <button type="submit" class="btn">一時停止</button>
+                        </form>
+                      {% elif c.status == 'suspended' %}
+                        <form method="post" action="{{ url_for('owner_clubs_resume', club_id=c.id) }}" style="display:inline;">
+                          <button type="submit" class="btn">再開</button>
+                        </form>
+                      {% endif %}
+
+                      <form method="post" action="{{ url_for('owner_clubs_soft_delete', club_id=c.id) }}" style="display:inline;">
+                        <button type="submit" class="btn">削除</button>
+                      </form>
+
+                      <!-- 代行ログイン（POST専用ルートなのでフォームで送信） -->
+                      <form method="post"
+                            action="{{ url_for('owner_clubs_impersonate', club_id=c.id) }}"
+                            target="_blank" rel="noopener" style="display:inline;">
+                        <button type="submit" class="btn btn-primary">代行ログイン</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="7" class="muted">クラブはありません。</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 削除クラブ一覧 -->
+  <section>
+    <h3>削除クラブ一覧</h3>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table class="list">
+          <thead class="table-header">
+            <tr>
+              <th style="width:160px;">クラブID</th>
+              <th style="width:220px;">教室名</th>
+              <th style="width:120px;">状態</th>
+              <th style="width:160px;">作成日</th>
+              <th style="width:180px;">最終ログイン</th>
+              <th>契約メモ</th>
+              <th style="width:280px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if deleted and deleted|length > 0 %}
+              {% for c in deleted %}
+                <tr>
+                  <td>{{ c.id }}</td>
+                  <td>{{ c.name }}</td>
+                  <td><span class="badge deleted">deleted</span></td>
+                  <td>{{ (c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '-') }}</td>
+                  <td>{{ (c.last_login_at.strftime('%Y-%m-%d %H:%M') if c.last_login_at else '-') }}</td>
+                  <td style="white-space: normal;">{{ c.memo or '' }}</td>
+                  <td>
+                    <div class="actions">
+                      <form method="post" action="{{ url_for('owner_clubs_restore', club_id=c.id) }}" style="display:inline;">
+                        <button type="submit" class="btn">復旧</button>
+                      </form>
+
+                      <form method="post" action="{{ url_for('owner_clubs_purge', club_id=c.id) }}" style="display:inline;"
+                            onsubmit="return confirm('本当に完全削除しますか？この操作は元に戻せません');">
+                        <button type="submit" class="btn btn-danger">完全削除</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="7" class="muted">削除クラブはありません。</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body></html>

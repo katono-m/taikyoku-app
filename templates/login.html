@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ログイン | {{ club.name if club else "クラブ名未設定" }} 対局管理システム</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1.5rem;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 1.25rem 1.25rem 1.5rem;
+      box-shadow: 0 6px 12px rgba(0,0,0,.05);
+    }
+    h1 {
+      margin: 0 0 .25rem;
+      font-size: 1.25rem;
+      color: #2c3e50;
+      text-align: center;
+    }
+    .sub {
+      margin: 0 0 1rem;
+      font-size: .9rem;
+      color: #6b7280;
+      text-align: center;
+    }
+    .field { margin-bottom: .85rem; text-align: left; }
+    label { display: block; font-size: .9rem; margin-bottom: .35rem; color: #374151; }
+    input[type="text"], input[type="password"] {
+      width: 100%; box-sizing: border-box; padding: .6rem .7rem;
+      border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;
+      background: #fff;
+    }
+    .btn {
+      width: 100%; padding: .7rem 1rem; font-size: 1rem; border: none;
+      border-radius: 6px; background: #2c3e50; color: #fff; cursor: pointer;
+    }
+    .btn:hover { background: #1f2e3a; }
+    .flash { margin-bottom: .75rem; padding: .6rem .75rem; border-radius: 6px; font-size: .95rem; }
+    .flash.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .flash.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .flash.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ログイン</h1>
+    <p class="sub">対局管理システム</p>
+
+    <!-- フラッシュメッセージ表示 -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('login') }}" method="post" autocomplete="off">
+      <!-- クラブIDを一緒に送信 -->
+      <input type="hidden" name="club_id" value="{{ club.id if club else (g.current_club if g.current_club else '') }}">
+
+      <div class="field">
+        <label for="username">ログインID</label>
+        <input id="username" name="username" type="text" required>
+      </div>
+      <div class="field">
+        <label for="password">パスワード</label>
+        <input id="password" name="password" type="password" required>
+      </div>
+      <button class="btn" type="submit">ログイン</button>
+    </form>
+  </div>
+</body>
+</html>

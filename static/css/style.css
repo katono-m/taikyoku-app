@@ -1,0 +1,237 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f8f9fa;
+  margin: 0.5rem;
+  color: #333;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+th, td {
+  padding: 4px 8px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+th {
+  background-color: #2c3e50;
+  color: #fff;
+  vertical-align: bottom;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+th a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #fff;
+  text-decoration: none;
+  line-height: 40px;
+}
+
+a {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+form p {
+  margin-bottom: 1rem;
+}
+
+input[type="submit"] {
+  padding: 0.5rem 1rem;
+  background-color: #2c3e50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+input[type="submit"]:hover {
+  background-color: #1a242f;
+}
+
+/* 統一ボタンスタイル */
+a.btn,
+button.btn,
+input.btn {
+  display: inline-flex;              /* インラインフレックスに変更 */
+  align-items: center;              /* 縦中央 */
+  justify-content: center;          /* 横中央 */
+  padding: 0 12px;
+  font-size: 0.9rem;
+  height: 32px;
+  line-height: 1;                   /* 数値で中央寄せが効くように */
+  background-color: #2c3e50;
+  color: #fff !important;
+  border-radius: 4px;
+  text-decoration: none;
+  vertical-align: middle;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+}
+
+/* 危険操作用（削除・終了系）ボタン */
+.btn-danger {
+  display: inline-block;
+  padding: 0 8px;
+  font-size: 0.9rem;
+  height: 32px;
+  line-height: 32px;
+  background-color: #dc3545;
+  color: #fff !important;
+  border-radius: 4px;
+  text-decoration: none;
+  vertical-align: middle;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: #c82333; /* 少し暗い赤 */
+}
+
+a.btn:hover,
+button.btn:hover,
+input.btn:hover {
+  background-color: #0056b3;
+}
+
+.table-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+.table-container table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-container th,
+.table-container td {
+  white-space: nowrap;
+}
+
+th a:hover {
+  text-decoration: underline;
+}
+
+/* スクロール時に項目行を固定 */
+.table-container th {
+  position: sticky;
+  top: 0;
+  background-color: #2c3e50;
+  z-index: 1;
+}
+
+.match-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+.members-list, .participants-list {
+  width: 48%;
+}
+
+/* --- 名簿管理画面（members.html）専用の列幅指定 --- */
+.members-table th:nth-child(1),
+.members-table td:nth-child(1) {
+  width: 80px;  /* ID */
+}
+
+.members-table th:nth-child(2),
+.members-table td:nth-child(2) {
+  width: 120px;  /* 名前 */
+}
+
+.members-table th:nth-child(3),
+.members-table td:nth-child(3) {
+  width: 120px;  /* よみがな */
+}
+
+.members-table th:nth-child(4),
+.members-table td:nth-child(4) {
+  width: 100px;  /* 棋力 */
+}
+
+.table-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+.table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: #2c3e50;
+  z-index: 1;
+}
+
+table th, table td {
+  padding: 0.6rem 0.5rem;
+  line-height: 1.5;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+/* main コンテンツの余白を減らす */
+main {
+  padding: 1rem 2rem; /* ← もともと 2rem の上下だった場合は軽減 */
+}
+
+/* h2 見出しの余白を調整 */
+h2 {
+  margin-top: 0rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* header の余白を縮小（ロゴ周り） */
+header {
+  padding-bottom: 0rem;
+  padding: 1rem 1rem 0.5rem;
+}
+
+.participant-header {
+  justify-content: flex-start !important;
+  padding-left: 8px;
+}
+
+/* ===== 対局中カードの視覚強調（薄い赤） ===== */
+.match-card.in-progress {
+  background-color: #fff1f1;           /* うっすら赤 */
+  border-color: #ffb3b3 !important;    /* 枠もやや赤（既存枠があれば上書き） */
+  box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.12) inset;
+  transition: background-color 0.2s ease;
+}

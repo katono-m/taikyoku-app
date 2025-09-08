@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">勝敗カウントリセット編集（{{ member.member_code }} {{ member.name }}）</h2>
+
+<div style="max-width:720px; margin:0 auto;">
+  <div style="margin:8px 0; display:flex; gap:8px;">
+    <input id="new-date" type="datetime-local" style="flex:1;">
+    <button id="add-btn" class="btn">追加</button>
+    <a class="btn btn-outline" href="{{ url_for('blind_counts_index') }}">戻る</a>
+  </div>
+
+  <table class="table" style="width:100%; border-collapse:collapse;">
+    <colgroup>
+      <col style="width: 20rem;">
+      <col style="width: 6rem;">
+      <col style="width: 6rem;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:6px 8px;">リセット日時</th>
+        <th style="text-align:left; padding:6px 8px;">更新</th>
+        <th style="text-align:left; padding:6px 8px;">削除</th>
+      </tr>
+    </thead>
+    <tbody id="reset-rows">
+      {% for r in resets %}
+      <tr data-id="{{ r.id }}">
+        <td style="text-align:left; padding:6px 8px;">
+          <input type="datetime-local" class="dt" value="{{ r.reset_date.isoformat()[:16] }}">
+        </td>
+        <td style="text-align:left; padding:6px 8px;">
+          <button class="btn save">保存</button>
+        </td>
+        <td style="text-align:left; padding:6px 8px;">
+          <button class="btn btn-outline del">削除</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const memberId = "{{ member.id }}";
+
+document.getElementById("add-btn").onclick = async () => {
+  const v = (document.getElementById("new-date").value || "").trim();
+  if (!v) { alert("日時を入力してください"); return; }
+  const res = await fetch("/api/counter_resets/add", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ member_id: memberId, reset_date: v })
+  });
+  const js = await res.json();
+  if (js.success) location.reload();
+  else alert(js.message || "追加に失敗しました");
+};
+
+document.querySelectorAll("#reset-rows .save").forEach(btn => {
+  btn.onclick = async (e) => {
+    const tr = e.target.closest("tr");
+    const id = tr.dataset.id;
+    const v = tr.querySelector(".dt").value;
+    const res = await fetch("/api/counter_resets/update", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ id, reset_date: v })
+    });
+    const js = await res.json();
+    if (js.success) alert("保存しました");
+    else alert(js.message || "保存に失敗しました");
+  };
+});
+
+document.querySelectorAll("#reset-rows .del").forEach(btn => {
+  btn.onclick = async (e) => {
+    if (!confirm("削除しますか？")) return;
+    const tr = e.target.closest("tr");
+    const id = tr.dataset.id;
+    const res = await fetch("/api/counter_resets/delete", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ id })
+    });
+    const js = await res.json();
+    if (js.success) tr.remove();
+    else alert(js.message || "削除に失敗しました");
+  };
+});
+</script>
+
+{% endblock %}

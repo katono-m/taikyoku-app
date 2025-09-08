@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center; margin: 0 0 1rem;">QRコード生成（会員選択）</h2>
+
+<form action="{{ url_for('qr_batch_zip') }}" method="POST" id="qr-form" style="margin:0;">
+  <!-- 操作ボタン行 -->
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin:0 0 .75rem;">
+    <div>
+      <a class="btn btn-outline" href="{{ url_for('index') }}">← トップへ戻る</a>
+    </div>
+    <div style="display:flex; gap:.5rem; align-items:center;">
+      <button type="button" class="btn btn-outline" id="select-all">全選択</button>
+      <button type="button" class="btn btn-outline" id="clear-all">選択解除</button>
+      <span id="selected-count" style="font-size:0.95rem; color:#666;">選択：0件</span>
+
+      <button type="submit" class="btn" id="download-zip" disabled>
+        選択した会員のQRをZIPダウンロード
+      </button>
+
+      <!-- ▼ 追加：CSV出力ボタン（同じフォームだが送り先だけ変更） -->
+      <button type="submit"
+              class="btn btn-outline"
+              id="download-csv"
+              formaction="{{ url_for('qr_token_urls_csv') }}"
+              formmethod="post"
+              disabled>
+        QRトークンURLをCSV出力
+      </button>
+    </div>
+  </div>
+
+  <!-- スクロールテーブル（見出し固定） -->
+  <div style="max-height:520px; overflow-y:auto; border:1px solid #ddd; border-radius:4px; background:#fff;">
+    <table class="table" style="width:100%; min-width:720px; table-layout:fixed; border-collapse:collapse;">
+      <colgroup>
+        <col style="width: 4rem;">   <!-- チェック -->
+        <col style="width: 8rem;">   <!-- 会員ID -->
+        <col style="width: 14rem;">  <!-- 名前 -->
+        <col style="width: 14rem;">  <!-- よみがな -->
+        <col style="width: 10rem;">  <!-- 会員種別 -->
+        <col style="width: 18rem;">  <!-- QRトークン -->
+        <col style="width: 10rem;">  <!-- 操作（再生成） -->
+      </colgroup>
+
+      <thead style="position:sticky; top:0; z-index:2; background:#f8f9fa; box-shadow:0 1px 0 rgba(0,0,0,0.06);">
+        <tr>
+          <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #e5e7eb;">選択</th>
+          <th class="sortable" data-key="code" 
+              style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb; cursor:pointer;">会員ID</th>
+          <th class="sortable" data-key="name" 
+              style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb; cursor:pointer;">名前</th>
+          <th class="sortable" data-key="kana" 
+              style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb; cursor:pointer;">よみがな</th>
+          <th class="sortable" data-key="type" 
+              style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb; cursor:pointer;">会員種別</th>
+          <th class="sortable" data-key="token" 
+              style="padding:6px 8px; text-align:left; border-bottom:1px solid #e5e7eb; cursor:pointer;">QRトークン</th>
+          <th style="padding:6px 8px; text-align:center; border-bottom:1px solid #e5e7eb;">操作</th>
+        </tr>
+      </thead>
+
+      <tbody id="member-tbody">
+        {% for m in members %}
+        <tr>
+          <td style="padding:6px 8px; text-align:center; border-top:1px solid #f1f5f9;">
+            {% if m.qr_token %}
+              <input type="checkbox" name="member_ids" value="{{ m.id }}" class="row-check">
+            {% else %}
+              <input type="checkbox" disabled title="QRトークン未発行のため選択不可">
+            {% endif %}
+          </td>
+          <td data-key="code" 
+              style="padding:6px 8px; text-align:left; border-top:1px solid #f1f5f9;">{{ m.member_code or m.id }}</td>
+          <td data-key="name" 
+              style="padding:6px 8px; text-align:left; border-top:1px solid #f1f5f9;">{{ m.name }}</td>
+          <td data-key="kana" 
+              style="padding:6px 8px; text-align:left; border-top:1px solid #f1f5f9;">{{ m.kana }}</td>
+          <td data-key="type" 
+              style="padding:6px 8px; text-align:left; border-top:1px solid #f1f5f9;">{{ m.member_type }}</td>
+          <td data-key="token" 
+              style="padding:6px 8px; text-align:left; border-top:1px solid #f1f5f9;">
+            {% if m.qr_token %}
+              <span id="tok-{{ m.id }}">{{ m.qr_token }}</span>
+            {% else %}
+              <span id="tok-{{ m.id }}" style="color:#999;">（未発行）</span>
+            {% endif %}
+          </td>
+          <td style="padding:6px 8px; text-align:center; border-top:1px solid #f1f5f9;">
+            <button type="button"
+                    class="btn btn-outline"
+                    onclick="regenerateToken('{{ m.id }}', this)"
+                    {% if not m.is_active %}disabled title="退会者のため無効"{% endif %}>
+              {% if m.qr_token %}トークン再生成{% else %}トークン発行{% endif %}
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<script>
+  (function(){
+    const tbody = document.getElementById('member-tbody');
+    const selectAllBtn = document.getElementById('select-all');
+    const clearAllBtn  = document.getElementById('clear-all');
+    const countSpan    = document.getElementById('selected-count');
+    const submitBtn    = document.getElementById('download-zip');
+    const csvBtn       = document.getElementById('download-csv');
+
+    function getChecks() {
+      return Array.from(tbody.querySelectorAll('input.row-check:not(:disabled)'));
+    }
+    function updateCountAndButton() {
+      const checks = getChecks();
+      const selected = checks.filter(c => c.checked).length;
+      countSpan.textContent = `選択：${selected}件`;
+      const disabled = (selected === 0);
+      submitBtn.disabled = disabled;
+      if (csvBtn) csvBtn.disabled = disabled;  // ← 追加
+    }
+    selectAllBtn.addEventListener('click', () => { getChecks().forEach(c => c.checked = true); updateCountAndButton(); });
+    clearAllBtn.addEventListener('click', () => { getChecks().forEach(c => c.checked = false); updateCountAndButton(); });
+    tbody.addEventListener('change', (e) => { if (e.target && e.target.classList.contains('row-check')) updateCountAndButton(); });
+    updateCountAndButton();
+
+    // ▼ テーブルソート（ヘッダクリックで昇順/降順トグル）
+    let currentSort = { key: null, order: 'asc' };
+    const ths = document.querySelectorAll('thead th.sortable');
+    ths.forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.key;
+        let order = 'asc';
+        if (currentSort.key === key && currentSort.order === 'asc') order = 'desc';
+        currentSort = { key, order };
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.sort((a, b) => {
+          const ta = (a.querySelector(`[data-key="${key}"]`)?.textContent || '').trim();
+          const tb = (b.querySelector(`[data-key="${key}"]`)?.textContent || '').trim();
+
+          // 数字ソート（IDが数値のみなら数値比較に）
+          const na = Number(ta), nb = Number(tb);
+          const isNum = !Number.isNaN(na) && !Number.isNaN(nb) && ta.match(/^\d+$/) && tb.match(/^\d+$/);
+          let cmp = 0;
+          if (isNum) cmp = na - nb;
+          else cmp = ta.localeCompare(tb, 'ja'); // 日本語のかな/漢字も自然にソート
+          return order === 'asc' ? cmp : -cmp;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+
+        // 見た目の矢印を簡易表示（タイトル末尾に▲/▼）
+        ths.forEach(x => x.textContent = x.textContent.replace(/[▲▼]$/, ''));
+        th.textContent = th.textContent.replace(/[▲▼]$/, '') + (order === 'asc' ? '▲' : '▼');
+      });
+    });
+  })();
+</script>
+
+<script>
+  async function regenerateToken(memberId, btnEl) {
+    if (!memberId) return;
+    if (!confirm('QRトークンを再生成します。よろしいですか？\n（発行済みのQRコードは無効になります）')) {
+      return;
+    }
+
+    // ボタン二度押し防止
+    const prevText = btnEl.textContent;
+    btnEl.disabled = true;
+    btnEl.textContent = '再生成中...';
+
+    try {
+      const res = await fetch(`/api/members/${encodeURIComponent(memberId)}/regenerate_qr_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})   // CSRF未使用構成なら空でOK
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const msg = (data && data.message) ? data.message : '再生成に失敗しました。';
+        alert('エラー：' + msg);
+        return;
+      }
+
+      // 表示トークンを更新
+      const span = document.getElementById(`tok-${memberId}`);
+      if (span) span.textContent = data.token || '';
+
+      // 成功フィードバック
+      btnEl.textContent = '再生成済み';
+      setTimeout(() => {
+        btnEl.textContent = prevText;
+      }, 1000);
+    } catch (e) {
+      console.error(e);
+      alert('通信エラーが発生しました。');
+    } finally {
+      btnEl.disabled = false;
+    }
+  }
+</script>
+
+{% endblock %}

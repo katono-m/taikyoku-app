@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center; margin-bottom:1.5rem;">退会者一覧</h2>
+
+<style>
+  .table-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+  }
+  .members-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .members-table th, .members-table td {
+    padding: 4px 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+    vertical-align: middle;
+    line-height: 1.2;
+  }
+  .members-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #6c757d; /* 現役の紺との差別化でグレー */
+    color: #fff;
+    z-index: 2;
+  }
+  .members-table th:nth-child(1),
+  .members-table td:nth-child(1) { width: 80px; }   /* ID */
+  .members-table th:nth-child(2),
+  .members-table td:nth-child(2) { width: 140px; }  /* 名前 */
+  .members-table th:nth-child(3),
+  .members-table td:nth-child(3) { width: 140px; }  /* よみがな */
+  .members-table th:nth-child(4),
+  .members-table td:nth-child(4) { width: 120px; }  /* 棋力 */
+  .members-table th:nth-child(5),
+  .members-table td:nth-child(5) { width: 120px; }  /* 会員種類 */
+  .members-table th:nth-child(6),
+  .members-table td:nth-child(6) { width: 160px; }  /* 退会日時 */
+  .members-table th:nth-child(7),
+  .members-table td:nth-child(7) { width: 100px; }  /* 復旧 */
+</style>
+
+<div class="table-container">
+  <table class="members-table" border="1">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>名前</th>
+        <th>よみがな</th>
+        <th>棋力</th>
+        <th>会員種類</th>
+        <th>退会日時</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in members %}
+      <tr>
+        <td>{{ m.member_code }}</td>
+        <td>{{ m.name }}</td>
+        <td>{{ m.kana }}</td>
+        <td>{{ m.grade }}</td>
+        <td>{{ m.member_type }}</td>
+        <td>
+          {% if m.left_at %}
+            {{ m.left_at.strftime("%Y-%m-%d %H:%M") }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{{ url_for('restore_member', member_id=m.id) }}" onsubmit="return confirm('現役会員に復旧します。よろしいですか？');" style="display:inline;">
+            <button type="submit" class="btn">復旧</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center; color:#666;">退会者は現在いません。</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p style="text-align:center; margin-top: 2rem;">
+  <a href="{{ url_for('members') }}" class="btn">← 会員名簿に戻る</a>
+</p>
+
+{% endblock %}

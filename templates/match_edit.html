@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block content %}
+{% set sort_members = sort_members | default('member_code') %}
+{% set order_members = order_members | default('asc') %}
+{% set sort_participants = sort_participants | default('member_code') %}
+{% set order_participants = order_participants | default('asc') %}
+
+<h2 style="text-align: center;">参加者編集フェーズ</h2>
+
+<!-- フェーズ切替ボタン -->
+<div style="text-align: center; margin-bottom: 1.5rem;">
+  <button type="button" class="btn" id="proceed-button" style="pointer-events: none; opacity: 0.5;">
+    対局進行へ
+  </button>
+</div>
+
+<div style="display: flex; gap: 30px;">
+  <!-- 全会員名簿 -->
+  <div style="width: 50%;">
+    <div style="display: inline-flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+      <h3 style="margin: 0;">全会員名簿</h3>
+      <span style="color: #555; font-size: 0.9rem;">※項目名をクリックすると並び替え可能</span>
+    </div>
+
+    <!-- ▼▼ QRコード受付（スキャン） ▼▼ -->
+    <div style="display:flex; align-items:center; gap:.5rem; margin: .25rem 0 .75rem;">
+      <label for="qr-input" style="font-weight:600;">QRコード受付：</label>
+      <input id="qr-input" type="text" placeholder="ここにカーソルを置いたままスキャン"
+            style="flex:1; max-width:420px; padding:.4rem; border:1px solid #ccc; border-radius:4px;">
+      <button id="qr-clear" class="btn btn-outline" type="button">クリア</button>
+      <!-- ★追加：音を有効化（初回クリックでブラウザの自動再生制限を解除） -->
+      <button id="qr-sound-enable" class="btn btn-outline" type="button" title="初回だけクリックして音を有効化">🔊 音を有効化</button>
+    </div>
+
+    <!-- ★追加：音源（/static/sounds/ 以下に設置） -->
+    <audio id="sound-ok" src="{{ url_for('static', filename='sounds/ok.mp3') }}" preload="auto"></audio>
+    <audio id="sound-ng" src="{{ url_for('static', filename='sounds/ng.mp3') }}" preload="auto"></audio>
+
+    <div id="qr-msg" style="color:#555; font-size:.9rem; margin-bottom:.25rem;"></div>
+    <!-- ▲▲ ここまで -->
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>選択</th>
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_members='member_code', order_members='asc' if sort_members != 'member_code' or order_members == 'desc' else 'desc', sort_participants=sort_participants, order_participants=order_participants) }}" style="text-align: left;">会員ID</a></th> 
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_members='name', order_members='asc' if sort_members != 'name' or order_members == 'desc' else 'desc', sort_participants=sort_participants, order_participants=order_participants) }}" style="text-align: left;">名前</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_members='kana', order_members='asc' if sort_members != 'kana' or order_members == 'desc' else 'desc', sort_participants=sort_participants, order_participants=order_participants) }}" style="text-align: left;">よみがな</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_members='grade', order_members='asc' if sort_members != 'grade' or order_members == 'desc' else 'desc', sort_participants=sort_participants, order_participants=order_participants) }}" style="text-align: left;">棋力</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_members='member_type', order_members='asc' if sort_members != 'member_type' or order_members == 'desc' else 'desc', sort_participants=sort_participants, order_participants=order_participants) }}" style="text-align: left;">会員種類</a></th>
+          </tr>
+        </thead>
+        <tbody id="members-table">
+          {% for m in members %}
+          <tr data-id="{{ m.id }}">
+            <td><input type="checkbox" class="member-check"></td>
+            <td>{{ m.member_code or m.id }}</td>
+            <td>{{ m.name }}</td>
+            <td>{{ m.kana }}</td>
+            <td>{{ m.grade }}</td>
+            <td>{{ m.member_type }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <button id="add-button" class="btn" style="margin-top: 12px;">選択した会員を参加受付</button>
+  </div>
+
+  <!-- 本日の参加者 -->
+  <div style="width: 50%;">
+    <!-- ▼ 空白スペーサーで高さを調整 ▼ -->
+    <div style="height:1.5rem;"></div>
+
+    <div style="display: inline-flex; align-items: center; gap: 0.75rem; margin-bottom: 2.0rem;">
+      <h3 style="margin: 0;">本日の参加者</h3>
+      <span style="color: #555; font-size: 0.9rem;">※項目名をクリックすると並び替え可能</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_participants='member_code', order_participants='asc' if sort_participants != 'member_code' or order_participants == 'desc' else 'desc', sort_members=sort_members, order_members=order_members) }}" style="text-align: left;">会員ID</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_participants='name', order_participants='asc' if sort_participants != 'name' or order_participants == 'desc' else 'desc', sort_members=sort_members, order_members=order_members) }}" style="text-align: left;">名前</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_participants='kana', order_participants='asc' if sort_participants != 'kana' or order_participants == 'desc' else 'desc', sort_members=sort_members, order_members=order_members) }}" style="text-align: left;">よみがな</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_participants='grade', order_participants='asc' if sort_participants != 'grade' or order_participants == 'desc' else 'desc', sort_members=sort_members, order_members=order_members) }}" style="text-align: left;">棋力</a></th>
+
+            <th><a class="participant-header" href="{{ url_for('match_edit', sort_participants='member_type', order_participants='asc' if sort_participants != 'member_type' or order_participants == 'desc' else 'desc', sort_members=sort_members, order_members=order_members) }}" style="text-align: left;">会員種類</a></th>
+
+            <th>取消</th>
+          </tr>
+        </thead>
+        <tbody id="participants-table">
+          <!-- JSで埋め込み -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- 先にスタブ（未定義エラー防止） -->
+<script>window.reloadParticipantsTable = window.reloadParticipantsTable || (async () => {});</script>
+<script src="{{ url_for('static', filename='js/match_edit.js') }}"></script>
+
+<script>
+  // --- QR入力の基本 ---
+  const qrInput = document.getElementById('qr-input');
+  const qrMsg   = document.getElementById('qr-msg');
+  const qrClear = document.getElementById('qr-clear');
+
+  // ★追加：音関係の要素参照
+  const enableSoundBtn = document.getElementById('qr-sound-enable');   // 追加したボタン
+  const sndOK = document.getElementById('sound-ok');
+  const sndNG = document.getElementById('sound-ng');
+
+  function focusQr() { setTimeout(() => qrInput?.focus(), 0); }
+  document.addEventListener('click', focusQr);
+  window.addEventListener('load', focusQr);
+
+  qrClear?.addEventListener('click', () => {
+    qrInput.value = '';
+    qrMsg.textContent = '';
+    focusQr();
+  });
+
+  // ★追加：音を有効化（自動再生ブロック解除用のユーザー操作）
+  enableSoundBtn?.addEventListener('click', async () => {
+    try {
+      // ほんの一瞬だけ再生して即停止することで権限を確立
+      await sndOK.play(); sndOK.pause(); sndOK.currentTime = 0;
+      await sndNG.play(); sndNG.pause(); sndNG.currentTime = 0;
+      enableSoundBtn.textContent = '🔊 音ON';
+      enableSoundBtn.disabled = true;
+    } catch (e) {
+      alert('ブラウザが自動再生をブロックしています。もう一度押すか、QR受付後に手動で一度クリックしてください。');
+    }
+  });
+
+  // ★追加：音再生ヘルパー
+  async function playSound(kind) {
+    try {
+      const el = kind === 'ok' ? sndOK : sndNG;
+      if (!el) return;
+      el.currentTime = 0;
+      await el.play();
+    } catch (e) {
+      // 再生失敗は無視（無音で継続）
+      // console.debug('sound play blocked:', e);
+    }
+  }
+
+  // ===== ここから：Enter不要の自動受付ロジック =====
+  const TOKEN_RE = /^[a-z0-9]{16}$/;
+  let scanTimer = null;
+  let isSubmitting = false;
+  let lastScan = { value: null, ts: 0 };
+
+  async function submitScan() {
+    if (isSubmitting) return;
+    const token = (qrInput.value || '').trim().toLowerCase();
+    if (!TOKEN_RE.test(token)) return;
+    const now = Date.now();
+    if (lastScan.value === token && (now - lastScan.ts) < 1000) {
+      qrMsg.textContent = '同じQRコードの連続読み取りを無視しました';
+      qrMsg.style.color = '#e67e22';
+      qrInput.value = '';
+      focusQr();
+      return;
+    }
+    lastScan = { value: token, ts: now };
+ 
+    isSubmitting = true;
+    // ★追加：送信中は入力欄を無効化（QRリーダーの後続キーを吸収）
+    qrInput.disabled = true
+
+    qrMsg.textContent = '受付中...';
+    qrMsg.style.color = '#2c3e50';
+
+    try {
+      const res = await fetch('{{ url_for("api_scan_checkin") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        qrMsg.textContent = data.message || '受付に失敗しました';
+        qrMsg.style.color = '#c0392b';
+        await playSound('ng');   // ★追加：失敗音
+      } else {
+        qrMsg.textContent = data.message || '受付しました';
+        qrMsg.style.color = '#2c3e50';
+        await playSound('ok');   // ★追加：成功音
+        await reloadParticipantsTable();
+      }
+    } catch (err) {
+      qrMsg.textContent = '通信エラー：' + (err?.message || err);
+      qrMsg.style.color = '#c0392b';
+      await playSound('ng');     // ★追加：通信エラーも失敗音
+    } finally {
+      isSubmitting = false;
+      qrInput.disabled = false;
+      qrInput.select();
+      focusQr();
+      clearTimeout(scanTimer);
+    }
+  }
+
+  // ① Enter押下でも動く（従来どおり）
+  qrInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(scanTimer);
+      submitScan();
+    }
+  });
+
+  // ② 入力が揃ったら自動送信
+  qrInput?.addEventListener('input', () => {
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => {
+      const token = (qrInput.value || '').trim().toLowerCase();
+      if (TOKEN_RE.test(token)) submitScan();
+    }, 120);
+  });
+  // ===== ここまで：自動受付ロジック =====
+</script>
+
+<script>
+  // ▼ 本日の参加者テーブルを再描画
+  window.reloadParticipantsTable = async function () {
+    try {
+      // 今日の日付（JST基準の YYYY-MM-DD）
+      const today = new Date(Date.now() - (new Date()).getTimezoneOffset()*60000)
+                      .toISOString().slice(0,10);
+
+      // 並び替えパラメータ（URLから引き継ぎ）
+      const params = new URLSearchParams(window.location.search);
+      const sort  = params.get('sort_participants') || 'member_code';
+      const order = params.get('order_participants') || 'asc';
+
+      // 参加者一覧APIを取得
+      const url = `/api/participants?date=${encodeURIComponent(today)}&sort=${sort}&order=${order}&_=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' }});
+      if (!res.ok) throw new Error('fetch failed');
+      const list = await res.json();
+
+      // テーブル差し替え
+      const tbody = document.getElementById('participants-table');
+      if (!tbody) throw new Error('tbody not found: participants-table');
+
+      tbody.innerHTML = '';
+      for (const m of list) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${m.member_code ?? m.id ?? ''}</td>
+          <td>${m.name ?? ''}</td>
+          <td>${m.kana ?? ''}</td>
+          <td>${m.grade ?? ''}</td>
+          <td>${m.member_type ?? ''}</td>
+          <td><button class="btn btn-outline remove-btn" data-id="${m.id}">取消</button></td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // ✅ ここを追加：参加者件数に応じて「対局進行へ」ボタンの有効/無効を即時反映
+      (function enableProceedByCount() {
+        const proceedBtn = document.getElementById('proceed-button');
+        if (!proceedBtn) return;
+        const hasParticipants = list.length > 0;
+        proceedBtn.style.pointerEvents = hasParticipants ? 'auto' : 'none';
+        proceedBtn.style.opacity       = hasParticipants ? '1'    : '0.5';
+      })();
+
+      // --- 左側「全会員名簿」の表示/非表示同期（参加中は隠す） ---
+      try {
+        const leftTbody = document.getElementById('members-table');
+        if (leftTbody) {
+          const idSet = new Set(list.map(p => String(p.id)));
+          leftTbody.querySelectorAll('tr[data-id]').forEach(tr => {
+            const mid = tr.getAttribute('data-id');
+            tr.style.display = idSet.has(mid) ? 'none' : '';
+            // チェックも安全側で外しておく
+            const cb = tr.querySelector('input.member-check');
+            if (cb && idSet.has(mid)) cb.checked = false;
+          });
+        }
+      } catch (_) {
+        /* 左表がないケースは無視 */
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ★追加：初期表示時にも必ず描画
+  window.addEventListener('load', () => { reloadParticipantsTable(); });
+</script>
+
+{% endblock %}

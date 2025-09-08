@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>個人成績表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; line-height: 1.6; padding: 16px; }
+    header { margin-bottom: 16px; }
+    .muted { color: #666; }
+    .cards { display: grid; gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fff; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 6px 8px; }
+    th { background: #f7f7f7; }
+    form.filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 16px; }
+    input[type="date"] { padding: 4px 6px; }
+    button { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; }
+    button:hover { background:#f0f0f0; }
+    .error { color: #b00020; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <header style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <div>
+      <h2 style="font-size:1.4rem; margin:0 0 6px;">個人成績表</h2>
+    </div>
+
+    <!-- 右端ボタン：全会員名簿（別窓） -->
+    <a
+      href="{{ url_for('public_results_index_token',
+                      token=public_results_token,
+                      start=start, end=end) }}"
+      target="_blank"
+      rel="noopener"
+      style="
+        display:inline-block; text-decoration:none;
+        padding:8px 12px; border:1px solid #ccc; border-radius:8px;
+        background:#fafafa; color:#333; font-size:0.95rem; white-space:nowrap;
+      "
+      title="公開版の全会員名簿を新しいタブで開きます"
+    >
+      全会員名簿
+    </a>
+
+  </header>
+
+  {% if error_message %}
+    <p class="error">{{ error_message }}</p>
+  {% elif not member %}
+    <p class="error">会員が見つかりません。</p>
+  {% else %}
+
+    <section class="card">
+      <h2 style="margin:0 0 6px;">{{ member.name }}（ID: {{ member.member_code or member.id }}）</h2>
+      <div class="muted"><strong>現在棋力: {{ member.grade or "未設定" }}</strong></div>
+      
+      <form class="filter" method="get">
+        <label>期間:</label>
+        <input type="date" name="start" value="{{ start or '' }}">
+        <span>〜</span>
+        <input type="date" name="end" value="{{ end or '' }}">
+        <button type="submit">更新</button>
+      </form>
+
+      <div class="cards">
+        <div class="card">
+          <strong>集計</strong>
+          <div>対局数: {{ games }} / 勝数: {{ "%.1f"|format(wins) if games>0 else "0" }} / 勝率: {{ ("%.1f"|format(winrate*100) if games>0 else "-") }}%</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0;">昇段級履歴</h3>
+      <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:4px;">
+        <table class="table" style="width:100%; min-width:600px; border-collapse:collapse;">
+          <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
+            <tr>
+              <th style="text-align:left; white-space:nowrap;">変更日</th>
+              <th style="text-align:left;">理由</th>
+              <th style="text-align:left;">前</th>
+              <th style="text-align:left;">後</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if histories and histories|length > 0 %}
+              {% for h in histories %}
+              <tr>
+                <td style="text-align:left; white-space:nowrap;">
+                  {% if h.changed_at %}{{ to_jst_date_str(h.changed_at) }}{% else %}-{% endif %}
+                </td>
+                <td style="text-align:left;">{{ h.reason or "" }}</td>
+                <td style="text-align:left;">{{ h.before_grade or "" }}</td>
+                <td style="text-align:left;">{{ h.after_grade or "" }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="4" style="text-align:center; padding:0.8rem;">履歴なし</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0;">対局一覧</h3>
+      <div style="max-height:400px; overflow-y:auto; border:1px solid #ddd; border-radius:4px;">
+        <table class="table" style="width:100%; min-width:700px; border-collapse:collapse;">
+          <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
+            <tr>
+              <th>日付</th>
+              <th>相手</th>
+              <th>相手棋力</th>
+              <th>駒落ち</th>
+              <th>勝敗</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if rows and rows|length>0 %}
+              {% for r in rows %}
+              <tr>
+                <td>{{ to_jst_date_str(r.ended_at) if r.ended_at else "-" }}</td>
+                <td>{{ r.opponent_name }}</td>
+                <td>{{ r.opponent_grade }}</td>
+                <td>{{ r.handicap }}</td>
+                <td>{{ r.result }}</td>
+                <td>{{ r.note }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="6" style="text-align:center; padding:0.8rem;">該当期間の対局はありません。</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>全会員名簿</title>
+  <style>
+    :root {
+      --card-w: 640px;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .page {
+      width: min(90vw, var(--card-w));
+      margin: 1.25rem auto 2rem;
+    }
+    h2 {
+      text-align: center;
+      margin: 0 0 1rem;
+    }
+    form {
+      margin: 0 0 1rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .table-container {
+      max-height: 520px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,.04);
+    }
+    table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      min-width: 420px; /* 不要に横長にならない最小幅 */
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border: 1px solid #eee;
+      white-space: nowrap;
+    }
+    thead {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 2;
+    }
+    a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <h2>全会員名簿</h2>
+
+  <!-- 期間フィルタ（残す：将来の拡張や並び替え維持のため） -->
+  <form method="get" action="{{ request.path }}">
+    <div>
+      <label>開始日：</label>
+      <input type="date" name="start" value="{{ start or '' }}">
+    </div>
+    <div>
+      <label>終了日：</label>
+      <input type="date" name="end" value="{{ end or '' }}">
+    </div>
+    <button type="submit">表示</button>
+  </form>
+
+  <!-- 一覧（公開：会員ID・名前・棋力のみ） -->
+  <div class="table-container">
+    <table>
+      <colgroup>
+        <col style="width: 8rem;">
+        <col style="width: 12rem;">
+        <col style="width: 8rem;">
+      </colgroup>
+
+      <thead>
+        {% set cur_sort = sort or '' %}
+        {% set cur_order = order or 'asc' %}
+        {% macro sort_link(label, col) -%}
+          {% set next_order = 'desc' if (cur_sort == col and cur_order == 'asc') else 'asc' %}
+          <a href="{{ request.path }}?start={{ start or '' }}&end={{ end or '' }}&sort={{ col }}&order={{ next_order }}">
+            {{ label }}
+            {% if cur_sort == col %}
+              {{ '▲' if cur_order == 'asc' else '▼' }}
+            {% endif %}
+          </a>
+        {%- endmacro %}
+        <tr>
+          <th>{{ sort_link('会員ID', 'member_code') }}</th>
+          <th>{{ sort_link('名前', 'name') }}</th>
+          <th>{{ sort_link('棋力', 'grade') }}</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% if rows and rows|length > 0 %}
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.member_code or '-' }}</td>
+            <td>{{ r.name }}</td>
+            <td>{{ r.grade }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="3" style="text-align:center; padding:1rem;">データがありません</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

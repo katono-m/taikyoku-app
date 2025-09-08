@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  /* ===== Manual Page Styles ===== */
+  :root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --ink: #1e293b;
+    --sub: #475569;
+    --brand: #0ea5e9;    /* アクセント */
+    --brand-weak: #bae6fd;
+    --line: #e2e8f0;
+    --radius: 14px;
+  }
+  body { background: var(--bg); }
+  .manual {
+    max-width: 1120px;
+    margin: 1rem auto 2rem;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 960px) {
+    .manual {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ===== Side TOC ===== */
+  .toc {
+    position: sticky;
+    top: 12px;
+    align-self: start;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 14px 8px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  }
+  .toc h3 {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    color: var(--ink);
+  }
+  .toc .search {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0 10px;
+  }
+  .toc input[type="search"] {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    font-size: .95rem;
+    outline: none;
+  }
+  .toc nav a {
+    display: block;
+    padding: 8px 10px;
+    margin: 4px 0;
+    border-radius: 10px;
+    color: var(--ink);
+    text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .toc nav a:hover,
+  .toc nav a.is-hit {
+    background: var(--brand-weak);
+    border-color: var(--brand);
+  }
+  .toc small {
+    display: block;
+    color: var(--sub);
+    margin-top: 8px;
+  }
+
+  /* ===== Main ===== */
+  .main {
+    min-width: 0;
+  }
+  .hero {
+    background: linear-gradient(180deg, #fff, #f9fbff);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 22px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    margin: 0 0 4px;
+    font-size: clamp(1.35rem, 1.15rem + 1vw, 1.9rem);
+    letter-spacing: .02em;
+  }
+  .hero p {
+    margin: 6px 0 0;
+    color: var(--sub);
+  }
+
+  /* ===== Section / Accordion ===== */
+  section.manual-section {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin: 10px 0 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+  }
+  section.manual-section > header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--line);
+  }
+  section.manual-section h2 {
+    font-size: 1.05rem;
+    margin: 0;
+  }
+  details.block {
+    border-top: 1px dashed var(--line);
+  }
+  details.block[open] summary {
+    background: #fbfdff;
+  }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    border-bottom: 1px dashed var(--line);
+  }
+  summary::before {
+    content: "▸";
+    transition: transform .15s ease;
+    color: var(--brand);
+  }
+  details[open] > summary::before { transform: rotate(90deg); }
+  .block .content {
+    padding: 12px 18px 16px 34px;
+    color: var(--ink);
+  }
+  .note {
+    background: #f0f9ff;
+    border: 1px solid var(--brand-weak);
+    color: #0b3a58;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+  .list {
+    margin: 6px 0 0 1rem;
+    padding: 0;
+  }
+  .list li { margin: 2px 0; }
+  .pill {
+    display: inline-block;
+    background: var(--brand-weak);
+    color: #0b3a58;
+    border: 1px solid var(--brand);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: .85rem;
+    margin-left: 6px;
+  }
+  .anchor {
+    text-decoration: none;
+    color: var(--brand);
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .muted { color: var(--sub); }
+
+  .inline-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 720px) {
+    .inline-grid { grid-template-columns: 1fr; }
+  }
+
+  .backtop {
+    text-align: right;
+    padding: 8px 14px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .backtop a { color: var(--brand); text-decoration: none; }
+</style>
+
+<div class="manual" id="top">
+  <!-- ===== TOC ===== -->
+  <aside class="toc">
+    <h3>説明書 目次</h3>
+    <div class="search">
+      <input id="toc-search" type="search" placeholder="キーワード検索 (例: 昇段級)">
+    </div>
+    <nav id="toc-links">
+      <a href="#sec-top">1. トップ画面</a>
+      <a href="#sec-settings">2. 設定画面</a>
+      <a href="#sec-members">3. 名簿管理画面</a>
+      <a href="#sec-match">4. 対局画面</a>
+      <a href="#sec-results">5. 成績管理画面</a>
+      <a href="#sec-qr">6. QRコード生成画面</a>
+    </nav>
+    <small class="muted">「こまゆい」ご利用の前に、<span class="mono">設定 → 棋力/昇段級/駒落ち/カード数</span> の順で初期設定をおすすめします。</small>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+    <div class="hero">
+      <h1>こまゆい｜利用ガイド</h1>
+      <p class="muted">システムの主な画面と操作手順を、折りたたみ式のマニュアルでまとめました。必要なところだけ開いてご利用ください。</p>
+    </div>
+
+    <!-- 1. トップ画面 -->
+    <section class="manual-section" id="sec-top">
+      <header>
+        <h2>1. トップ画面</h2>
+        <span class="pill">概要</span>
+      </header>
+
+      <details class="block" open>
+        <summary>できること</summary>
+        <div class="content">
+          <ul class="list">
+            <li>各画面へ移動：<span class="mono">設定 / 名簿管理 / 対局 / 成績管理 / QRコード生成</span></li>
+            <li>クラブのパスワード変更（半角英数字 + <span class="mono">._%+-@</span> / 8文字以上）</li>
+          </ul>
+          <div class="note">※ クラブIDは変更できません。</div>
+        </div>   
+      </details>
+    </section>
+
+    <!-- 2. 設定画面 -->
+    <section class="manual-section" id="sec-settings">
+      <header>
+        <h2>2. 設定画面</h2>
+        <span class="pill">初期セットアップ</span>
+      </header>
+
+      <details class="block" open>
+        <summary>棋力の設定</summary>
+        <div class="content">
+          <ul class="list">
+            <li>最初に「棋力の件数」を半角数字で入力（例：<span class="mono">15級〜三段</span>なら18）。</li>
+            <li>「未認定」は件数に含めない。</li>
+            <li>「次へ」ボタンを押下し、表示された件数分の棋力入力へ。</li>
+            <li>1番目 = 一番低い棋力から順に入力。</li>
+            <li>「保存」ボタン押下で確定（設定した棋力は後工程の昇段級・駒落ちと連動）。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>昇段級基準の設定</summary>
+        <div class="content">
+          <ul class="list">
+            <li>各棋力への昇段級条件を設定。</li>
+            <li>例）<span class="mono">10級 → 9級</span> を <span class="mono">5連勝</span> もしくは <span class="mono">8勝2敗</span>。</li>
+            <li>必要に応じて「勝敗②」（例：<span class="mono">10勝3敗</span>）も追加可能。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>駒落ちの設定</summary>
+        <div class="content">
+          <ul class="list">
+            <li>棋力差 0〜15 段（級）差の駒落ちを入力。</li>
+            <li>16差以上は <span class="mono">15差の設定</span> が適用。</li>
+            <li>対局進行フェーズで自動表示（手動変更も可）。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>対局カード数の設定</summary>
+        <div class="content">
+          <ul class="list">
+            <li>対局進行フェーズのカードのデフォルト枚数を設定。</li>
+            <li>カードの枚数は進行中に増減可能。</li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="backtop"><a class="anchor" href="#top">↑ 一番上へ戻る</a></div>
+    </section>
+
+    <!-- 3. 名簿管理画面 -->
+    <section class="manual-section" id="sec-members">
+      <header>
+        <h2>3. 名簿管理画面</h2>
+        <span class="pill">会員情報管理</span>
+      </header>
+
+      <details class="block" open>
+        <summary>会員種類と表示</summary>
+        <div class="content">
+          <ul class="list">
+            <li><b>正会員：</b>成績管理画面の一覧対象。</li>
+            <li><b>臨時会員：</b>一時参加・見学など。成績一覧には表示されない。</li>
+            <li><b>指導員：</b>対局進行フェーズで多面指し可。</li>
+            <li><b>スタッフ：</b>対局は可能だが多面指し不可。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>新規会員を追加</summary>
+        <div class="content">
+          <ul class="list">
+            <li><b>入力項目：</b>会員ID / 名前 / よみがな / 棋力 / 会員種類</li>
+            <li><b>会員ID：</b>半角英数字 + <span class="mono">._%+-@</span>（クラブ内で同一のIDは設定不可）</li>
+            <li><b>よみがな：</b>ひらがなのみ</li>
+            <li><b>棋力・会員種類：</b>プルダウンで入力</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>CSVインポート / エクスポート</summary>
+        <div class="content">
+          <b>インポート項目</b>
+          <ul class="list">
+            <li><span class="mono">member_code</span> / <span class="mono">name</span> / <span class="mono">kana</span> / <span class="mono">grade</span> / <span class="mono">member_type</span></li>
+          </ul>
+          <b>主な留意点</b>
+          <ul class="list">
+            <li><b>member_code（会員ID）：</b>半角英数字 + <span class="mono">._%+-@</span>／20文字以内。違反行は取り込みしない。</li>
+            <li><b>name（名前）：</b>日本語可 / 20文字超は取り込みしない。</li>
+            <li><b>kana（よみがな）：</b>ひらがなのみ（長音「ー」可）/ 50文字超は取り込みしない。</li>
+            <li><b>grade（棋力）：</b>マスタに無い値または空欄 → 「未認定」に置換。</li>
+            <li><b>member_type（会員種類）：</b>不明・空欄 → 「正会員」に置換。</li>
+            <li>member_code / name / kana のいずれか空欄 → その行は取り込みしない。</li>
+            <li>既存の member_code が含まれる行は上書き更新。</li>
+          </ul>
+          <b>エクスポート</b>
+          <ul class="list">
+            <li>エクスポートには退会者は含まれない。</li>
+          </ul>              
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>編集 / 退会 / 退会者</summary>
+        <div class="content">
+          <ul class="list">
+            <li>行ごとの「編集」で会員情報を更新。</li>
+            <li>「退会」で退会処理。退会者リストへ移動（完全削除は不可）。</li>
+            <li>退会者は「復旧」で現役に戻せる。</li>
+            <li>各項目名クリックで並び替え可能。</li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="backtop"><a class="anchor" href="#top">↑ 一番上へ戻る</a></div>
+    </section>
+
+    <!-- 4. 対局画面 -->
+    <section class="manual-section" id="sec-match">
+      <header>
+        <h2>4. 対局画面</h2>
+        <span class="pill">受付 → 対局進行</span>
+      </header>
+
+      <details class="block" open>
+        <summary>（1）参加者編集フェーズ</summary>
+        <div class="content">
+          <ul class="list">
+            <li>左：全会員名簿、右：本日の参加者。</li>
+            <li>受付方法：
+              <ul class="list">
+                <li>QRコード受付（生成済みQRをリーダーで読取）。</li>
+                <li>チェックボックス選択 → 「選択した会員を参加受付」。</li>
+              </ul>
+            </li>
+            <li>「取消」で受付を取り消し可能。</li>
+            <li>各項目名クリックで並び替え可能。</li>
+            <li>「対局進行へ」で進行フェーズへ。進行中でも戻って追加/削除できる。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>（2）対局進行フェーズ</summary>
+        <div class="content">
+          <ul class="list">
+            <li>左：本日の参加者、右：対局カード群。</li>
+            <li>参加者2名をドラッグしてカードに配置 → 「対局開始」ボタン押下。</li>
+            <li>終了時に結果を入力 → 「対局終了」で記録。</li>
+          </ul>
+
+          <h4 style="margin:.5rem 0;">対局種別</h4>
+          <ul class="list">
+            <li><b>棋力認定戦：</b>勝敗を保存。条件達成で昇段級通知。</li>
+            <li><b>指導対局：</b>勝敗の保存有無を選択可。「昇段級」ボタンで任意昇段級。</li>
+            <li><b>フリー対局：</b>記録は残さない。</li>
+            <li><b>初回認定戦：</b>未認定が片方にいる対局。終了時「棋力認定」ボタンで任意に認定。未認定者に勝利＝0.5勝（記号「◇」）、負け＝ノーカウント（「◆」）。</li>
+          </ul>
+
+          <h4 style="margin:.5rem 0;">カードの操作</h4>
+          <ul class="list">
+            <li>カード削除 / ＋カード追加 / 対局開始 / 手合い解除 / 対局終了</li>
+            <li>同一組合せの2回目以降があるときはアラート表示。</li>
+            <li>「勝てば昇段（級）」の事前表示あり。</li>
+          </ul>
+
+          <div class="note">「対局をすべて終了する」で本日の参加者やカード枚数を初期化できます。</div>
+        </div>
+      </details>
+
+      <div class="backtop"><a class="anchor" href="#top">↑ 一番上へ戻る</a></div>
+    </section>
+
+    <!-- 5. 成績管理画面 -->
+    <section class="manual-section" id="sec-results">
+      <header>
+        <h2>5. 成績管理画面</h2>
+        <span class="pill">閲覧 / 編集 / 追加 / 削除</span>
+      </header>
+
+      <details class="block" open>
+        <summary>成績一覧と出力</summary>
+        <div class="content">
+          <ul class="list">
+            <li>現役会員の成績一覧を表示。</li>
+            <li>集計期間の指定表示 / CSV出力に対応。</li>
+            <li>項目名クリックで並び替え。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>活動外成績入力</summary>
+        <div class="content">
+          <ul class="list">
+            <li>クラブ外での昇段級を記録（対象者・適用日・備考・新棋力）。</li>
+            <li>適用日をもって勝敗カウントを自動リセット。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>昇段級履歴</summary>
+        <div class="content">
+          <ul class="list">
+            <li>正会員の昇段級履歴を閲覧/編集/取消。</li>
+            <li>集計期間の指定表示 / CSV出力に対応。</li>
+            <li>取消すると履歴レコードは削除（会員の現在棋力は自動で戻らないため、名簿から手動変更）。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>対局の編集</summary>
+        <div class="content">
+          <ul class="list">
+            <li>対局一覧の閲覧/編集/追加/削除。</li>
+            <li>集計期間の指定表示 / CSV出力に対応。</li>
+            <li>対局編集または追加時に、昇段級に伴う勝敗カウントのリセット可否を選択可能。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>勝敗カウント編集 / 退会者</summary>
+        <div class="content">
+          <ul class="list">
+            <li><b>勝敗カウント編集：</b>「ブラインド勝敗」を編集。</li>
+            <li><b>リセット編集：</b>昇段級や活動外入力等に伴うリセット履歴を編集/追加/削除。</li>
+            <li><b>退会者：</b>退会者の成績を閲覧。</li>
+            <div class="note">
+              <b>ブラインド勝敗とは？</b><br>
+              成績表に掲載されない勝敗カウント（ブラインド勝敗）を指します。<br>
+              ブラインド勝敗は、例えば「こまゆい」を利用開始する時点で、「2連勝中」、「4勝1敗」、「6勝2敗」の成績がある会員がいた場合、「こまゆい」利用開始前の日付で「〇〇●〇〇●〇〇」と入力することで、その勝敗カウントがシステム利用後の勝敗カウントに加算されるという仕組みです。
+            </div>            
+          </ul>
+        </div>
+      </details>
+
+      <div class="backtop"><a class="anchor" href="#top">↑ 一番上へ戻る</a></div>
+    </section>
+
+    <!-- 6. QRコード生成画面 -->
+    <section class="manual-section" id="sec-qr">
+      <header>
+        <h2>6. QRコード生成画面</h2>
+        <span class="pill">受付用QRコード / 個人成績公開URL</span>
+      </header>
+
+      <details class="block" open>
+        <summary>QRの発行 / 再生成 / トークンURL</summary>
+        <div class="content">
+          <ul class="list">
+            <li>受付用のQRコードを発行・再生成。</li>
+            <li>「QRトークンURLをCSV出力」で、会員ごとの個人成績等公開URLを出力。</li>
+          </ul>
+          <div class="note">
+            <b>QRトークンURLとは？</b><br>
+            会員ごとに割り振る複雑な文字列（トークン）付きURL。ログインなしで「個人成績」「全会員名簿」を閲覧可能。<br>
+            万一、URLが漏洩した場合等は「トークン再生成」で無効化できます（既存のQRは無効になる点に注意）。
+          </div>
+        </div>
+      </details>
+
+      <div class="backtop"><a class="anchor" href="#top">↑ 一番上へ戻る</a></div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // ===== TOC Search (簡易フィルタ) =====
+  const input = document.getElementById('toc-search');
+  const links = Array.from(document.querySelectorAll('#toc-links a'));
+  input?.addEventListener('input', (e) => {
+    const q = (e.target.value || '').trim().toLowerCase();
+    links.forEach(a => {
+      const hit = a.textContent.toLowerCase().includes(q);
+      a.style.display = hit ? 'block' : 'none';
+      a.classList.toggle('is-hit', !!q && hit);
+    });
+  });
+
+  // アンカーを開いた状態でスクロール（details内の見出しに飛んだ時の補助）
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', () => {
+      const id = a.getAttribute('href').slice(1);
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // セクション内の details をすべて開く
+        el.querySelectorAll('details.block').forEach(d => d.open = true);
+      }, 0);
+    });
+  });
+</script>
+
+{% endblock %}

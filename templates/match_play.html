@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 style="text-align: center;">対局進行フェーズ</h2>
+
+<div style="text-align: center; margin-bottom: 1.5rem;">
+  <a href="{{ url_for('match_edit') }}" class="btn">← 参加者編集に戻る</a>
+  <button id="end-all-button" class="btn-danger" style="margin-left: 0.75rem;">
+    対局をすべて終了する
+  </button>
+</div>
+
+<div id="match-play-container" style="display: flex; gap: 30px; height: 700px;">
+
+  <!-- 🔽 指導対局モーダル -->
+  <div id="shido-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 0 10px #666;
+                max-width: 400px; width: 90%; text-align: center; margin: auto;">
+      <p style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem;">
+        この対局は指導対局です。記録しますか？
+      </p>
+      <p style="font-size: 0.8rem; color: #d63535; margin-bottom: 1rem;">
+        昇段級がある場合は、必ず記録してください
+      </p>
+      <div style="display: flex; justify-content: space-around;">
+        <button id="shido-save">記録する</button>
+        <button id="shido-norecord">記録しない</button>
+        <button id="shido-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔽 昇段級モーダル -->
+  <div id="shodan-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 0 10px #333;
+                max-width: 420px; width: 90%; text-align: center; margin: auto;">
+      <h3 style="margin-bottom: 1rem;">昇段級の設定</h3>
+
+      <div style="margin-bottom: 1rem;">
+        <label for="shodan-player-select">対象者：</label>
+        <select id="shodan-player-select">
+          <option value="p1">対局者1</option>
+          <option value="p2">対局者2</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label for="shodan-grade-select">新しい棋力：</label>
+        <select id="shodan-grade-select">
+          <!-- JavaScriptでoptionを挿入 -->
+        </select>
+      </div>
+
+      <div style="display: flex; justify-content: space-around;">
+        <button id="shodan-confirm">昇段級する</button>
+        <button id="shodan-cancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔽 本日2回目以上の対局警告モーダル -->
+  <div id="repeat-match-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.4); z-index: 9999; align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 0 10px #666;
+                max-width: 400px; width: 90%; text-align: center; margin: auto;">
+      <p id="repeat-match-message" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 1rem;">
+        本日2回目の対局です。
+      </p>
+      <div style="display: flex; justify-content: space-around;">
+        <button id="repeat-match-continue">それでも対局する</button>
+        <button id="repeat-match-cancel">手合い解除</button>
+      </div>
+    </div>
+  </div>  
+
+  <!-- 🔽 その日の終了 最終確認モーダル -->
+  <div id="end-all-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.45); z-index: 10001; align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 0 10px #333;
+                max-width: 420px; width: 90%; text-align: center; margin: auto;">
+      <p style="font-size: 1.05rem; font-weight: bold; margin-bottom: 1rem;">
+        本日の対局をすべて終了しますか？
+      </p>
+      <div style="display: flex; justify-content: space-around;">
+        <button id="end-all-yes">はい</button>
+        <button id="end-all-no">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 左カラム：本日の参加者リスト -->
+  <div id="participants-column" style="width: 45%; border: 1px solid #ccc; padding-right: 8px; display: flex; flex-direction: column;">
+    <div style="text-align: center; margin-bottom: 0.3rem;">
+      <span style="font-weight: bold;">本日の参加者</span>
+      <span>（項目名をクリックで並び替え可能）</span>
+    </div>
+    <div id="participants-table-wrapper" style="flex: 1; overflow-y: auto;">
+      <table class="table table-bordered" style="width: 100%;">
+        <thead style="position: sticky; top: 0; background: #fff; z-index: 1;">
+          <tr>
+            <th>
+              <a class="participant-header" href="{{ url_for('match_play', sort='member_code', order='asc' if sort != 'member_code' or order == 'desc' else 'desc') }}">会員ID</a>
+            </th>
+            <th>
+              <a class="participant-header" href="{{ url_for('match_play', sort='name', order='asc' if sort != 'name' or order == 'desc' else 'desc') }}">名前</a>
+            </th>
+            <th>
+              <a class="participant-header" href="{{ url_for('match_play', sort='kana', order='asc' if sort != 'kana' or order == 'desc' else 'desc') }}">よみがな</a>
+            </th>
+            <th>
+              <a class="participant-header" href="{{ url_for('match_play', sort='grade', order='asc' if sort != 'grade' or order == 'desc' else 'desc') }}">棋力</a>
+            </th>
+            <th>
+              <a class="participant-header" href="{{ url_for('match_play', sort='member_type', order='asc' if sort != 'member_type' or order == 'desc' else 'desc') }}">会員種類</a>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="participant-list">
+          {% for p in participants %}
+            <tr draggable="true" ondragstart="drag(event)" id="participant-{{ p.id }}">
+              <td>{{ p.member_code }}</td>
+              <td>{{ p.name }}</td>
+              <td>{{ p.kana }}</td>
+              <td>{{ p.grade }}</td>
+              <td>{{ p.member_type }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 右カラム：対局カード -->
+  <div id="cards-column" style="width: 55%; border: 1px solid #ccc; padding-right: 8px; display: flex; flex-direction: column;">
+    <div style="text-align: center; margin-bottom: 0.3rem;">
+      <span style="font-weight: bold;">対局カード</span>
+    </div>
+    <div id="cards-container" style="flex: 1; overflow-y: auto;">
+      <!-- ここに JavaScript で対局カードを描画 -->
+    </div>
+
+    <div style="text-align: right; margin-top: 1rem;">
+      <button onclick="addMatchCard()">＋ 対局カードを1枚追加</button>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- 外部JS読み込み -->
+<script src="{{ url_for('static', filename='js/match_play.js') }}"></script>
+
+<script id="strength-data" type="application/json">
+  {{ strength_order_map | tojson }}
+</script>
+<script id="handicap-map" type="application/json">
+  {{ handicap_map | tojson }}
+</script>
+<script id="handicap-list" type="application/json">
+  {{ handicap_list | tojson }}
+</script>
+
+<script>
+  window.strengthOrderMap = JSON.parse(document.getElementById("strength-data").textContent);
+  window.handicapMap = JSON.parse(document.getElementById("handicap-map").textContent);
+  window.handicapList = JSON.parse(document.getElementById("handicap-list").textContent);
+</script>
+
+<script>
+  window.sortKey = "{{ sort | default('member_code') }}";
+  window.sortOrder = "{{ order | default('asc') }}";
+</script>
+
+{% endblock %}

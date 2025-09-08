@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>対局管理アプリ</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      padding: 0.5rem 1rem;   /* 上下の余白を減らす */
+      display: flex;
+      align-items: center;    /* タイトルとボタンの縦位置を揃える */
+      justify-content: space-between;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;     /* 少し小さめにする */
+      color: #2c3e50;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    nav a.btn-nav {
+      padding: 6px 14px;
+      font-size: 0.9rem;       /* ボタンも少し小さめに */
+      background-color: #2c3e50;
+      color: #fff;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+
+    nav a.btn-nav:hover {
+      background-color: #0056b3;
+    }
+
+    hr {
+      margin: 0;
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+
+    main {
+      padding: 1.5rem;
+    }
+
+    /* ▼ フラッシュメッセージ */
+    .flash-area {
+      max-width: 1100px;
+      margin: 0.75rem auto 0;
+      padding: 0 1.5rem;
+    }
+    .alert {
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      background: #fff;
+    }
+    .alert-success { border-color: #cce5cc; background: #f3fbf3; color: #2c662d; }
+    .alert-warning { border-color: #ffeeba; background: #fffaf0; color: #7a5a00; }
+    .alert-error   { border-color: #f5c6cb; background: #fff5f5; color: #842029; }
+    .alert-info    { border-color: #b8daff; background: #f0f8ff; color: #0c5460; }    
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ club.name if club else "クラブ名未設定" }} 対局管理システム</h1>
+    <nav>
+      <a href="{{ url_for('index') }}" class="btn-nav">トップ</a>
+      <a href="{{ url_for('settings_index') }}" class="btn-nav">設定</a>
+      <a href="{{ url_for('members') }}" class="btn-nav">名簿</a>
+      <a href="{{ url_for('match_edit') }}" class="btn-nav">対局</a>
+      <a href="{{ url_for('view_results') }}" class="btn-nav">成績</a>
+      <a href="{{ url_for('qr_select') }}" class="btn-nav">QR</a>
+    </nav>
+  </header>
+  <hr>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      <div class="flash-area">
+        {% for category, message in msgs %}
+          <div class="alert alert-{{ category|default('info') }}" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

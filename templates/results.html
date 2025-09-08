@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">成績管理画面</h2>
+
+<!-- 期間フィルタ -->
+<form method="get" action="{{ url_for('results_inactive_index') if inactive else url_for('results_index') }}" style="margin: 1rem 0; display:flex; gap: 1rem; align-items: center; justify-content:center;">
+  <div>
+    <label>開始日：</label>
+    <input type="date" name="start" value="{{ start or '' }}">
+  </div>
+  <div>
+    <label>終了日：</label>
+    <input type="date" name="end" value="{{ end or '' }}">
+  </div>
+  <button type="submit" class="btn">集計</button>
+</form>
+
+<div style="display:flex; justify-content:flex-end; gap:.5rem; margin: 0.25rem 0 0.75rem;">
+  <!-- 活動外成績入力（新設フォームへ） -->
+  <a class="btn btn-outline"
+     href="{{ url_for('outside_new') }}"
+     title="大会成績などクラブ外の出来事を記録します。個人成績と昇段級履歴に反映。">
+     活動外成績入力
+  </a>
+
+  <!-- 昇段級履歴 -->
+  <a class="btn btn-outline"
+     href="{{ url_for('grade_history_index', start=start, end=end) }}">
+     昇段級履歴
+  </a>
+
+  <a class="btn btn-outline"
+     href="{{ url_for('results_edit_index', start=start, end=end) }}"
+     title="この期間内の対局を一覧し、編集・削除します">
+     対局の編集
+  </a>
+
+  <!-- ★ 追加：ブラインド勝敗（勝敗カウント編集） -->
+  <a class="btn btn-outline"
+     href="{{ url_for('blind_counts_index') }}"
+     title="システム導入前の勝敗列を登録し、昇段級カウントにのみ合算します">
+     勝敗カウント編集
+  </a>
+
+  {% if inactive %}
+    <!-- 成績管理に戻る -->
+    <a class="btn btn-outline"
+       href="{{ url_for('results_index', start=start, end=end) }}"
+       title="成績管理画面に戻ります">
+       成績管理に戻る
+    </a>
+  {% else %}
+    <!-- 退会者（成績一覧：退会者のみ） -->
+    <a class="btn btn-outline"
+       href="{{ url_for('results_inactive_index', start=start, end=end) }}"
+       title="退会者の成績一覧（期間内）">
+       退会者
+    </a>
+  {% endif %}
+</div>
+
+<!-- 出力ボタン（退会者一覧では非表示） -->
+{% if not inactive %}
+<div style="text-align:center; margin-bottom: 0.5rem;">
+  <a class="btn"
+     href="{{ url_for('results_export_csv', start=start, end=end) }}">
+     CSV出力
+  </a>
+</div>
+{% endif %}
+
+<!-- 成績テーブル -->
+<!-- 成績テーブル（備考欄を削除／列幅固定／左寄せ統一／縦スクロール） -->
+<div style="max-height:520px; overflow-y:auto; overflow-x:auto; border:1px solid #ddd; border-radius:4px;">
+  <table class="table" style="width:100%; min-width:700px; table-layout:fixed; border-collapse:collapse;">
+    <colgroup>
+      <col style="width: 6rem;">   <!-- 会員ID -->
+      <col style="width: 12rem;">  <!-- 名前 -->
+      <col style="width: 6rem;">   <!-- 棋力 -->
+      <col style="width: 6rem;">   <!-- 対局数 -->
+      <col style="width: 6rem;">   <!-- 勝数 -->
+      <col style="width: 8rem;">   <!-- 勝率 -->
+    </colgroup>
+
+    <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
+      {% set cur_sort = sort or '' %}
+      {% set cur_order = order or 'asc' %}
+      {% macro sort_link(label, col) -%}
+        {% if inactive %}
+          <span style="display:block; text-align:left;">{{ label }}</span>
+        {% else %}
+          {% set next_order = 'desc' if (cur_sort == col and cur_order == 'asc') else 'asc' %}
+          <a href="{{ url_for('results_index', start=start, end=end, sort=col, order=next_order) }}"
+            style="display:block; text-align:left; justify-content:flex-start; text-decoration:none;">
+            {{ label }}
+            {% if cur_sort == col %}
+              {{ '▲' if cur_order == 'asc' else '▼' }}
+            {% endif %}
+          </a>
+        {% endif %}
+      {%- endmacro %}
+
+      <tr>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('会員ID', 'member_code') }}</th>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('名前', 'name') }}</th>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('棋力', 'grade') }}</th>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('対局数', 'games') }}</th>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('勝数', 'wins') }}</th>
+        <th style="text-align:left !important; padding:6px 8px;">{{ sort_link('勝率', 'winrate') }}</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% if rows and rows|length > 0 %}
+        {% for r in rows %}
+        <tr>
+          <td style="text-align:left; padding:6px 8px;">{{ r.member_code }}</td>
+          <td style="text-align:left; padding:6px 8px;">
+            <a href="{{ url_for('results_member', member_id=r.id, start=start, end=end) }}">
+              {{ r.name }}
+            </a>
+          </td>
+          <td style="text-align:left; padding:6px 8px;">{{ r.grade }}</td>
+          <td style="text-align:left; padding:6px 8px;">{{ r.games }}</td>
+          <td style="text-align:left; padding:6px 8px;">
+            {{ "%.1f"|format(r.wins) if (r.wins % 1) != 0 else "%d"|format(r.wins|int) }}
+          </td>
+          <td style="text-align:left; padding:6px 8px;">
+            {{ "{:.1%}".format(r.winrate) if r.games > 0 else "-" }}
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <!-- 備考列削除に伴い colspan を 6 に変更 -->
+        <tr><td colspan="6" style="text-align:center; padding:1rem;">データがありません</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

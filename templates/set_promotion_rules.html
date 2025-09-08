@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align: center; margin-bottom: 1rem;">昇段級基準の設定</h2>
+
+<p style="text-align: center; color: #555; font-size: 0.95rem;">
+  ※各棋力への昇段級するための条件を入力してください。<br>
+  ※勝ち数は「○勝以上」、負け数は「○敗以内」で判定されます。
+</p>
+
+<style>
+  .promo-table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+  }
+
+  .promo-table {
+    margin: 0 auto;
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 1000px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .promo-table th,
+  .promo-table td {
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .promo-table thead th {
+    background-color: #2c3e50;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .promo-table input[type="number"] {
+    width: 50px;
+    text-align: center;
+    margin: 0 4px;
+  }
+
+  .form-actions {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .btn-primary {
+    padding: 10px 20px;
+    background-color: #2c3e50;
+    color: white;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background-color: #0056b3;
+  }
+</style>
+
+<form method="POST">
+  <div class="promo-table-container">
+    <table class="promo-table">
+      <thead>
+        <tr>
+          <th>昇段級元 → 昇段級先</th>
+          <th>連勝</th>
+          <th>勝敗①</th>
+          <th>勝敗②</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pair in pairs %}
+        {% set key = (pair[0], pair[1]) %}
+        {% set rule = existing_rules.get(key) %}
+        <tr>
+          <td>{{ pair[0] }} → {{ pair[1] }}</td>
+          <td>
+            <input type="number" name="win_streak_{{ loop.index0 }}" min="1" value="{{ rule.win_streak if rule and rule.win_streak is not none }}">
+            連勝
+          </td>
+          <td>
+            <input type="number" name="win1_{{ loop.index0 }}" min="1" value="{{ rule.win1 if rule and rule.win1 is not none }}"> 勝
+            <input type="number" name="lose1_{{ loop.index0 }}" min="0" value="{{ rule.lose1 if rule and rule.lose1 is not none }}"> 敗
+          </td>
+          <td>
+            <input type="number" name="win2_{{ loop.index0 }}" min="1" value="{{ rule.win2 if rule and rule.win2 is not none }}"> 勝
+            <input type="number" name="lose2_{{ loop.index0 }}" min="0" value="{{ rule.lose2 if rule and rule.lose2 is not none }}"> 敗
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="form-actions">
+    <input type="submit" value="保存" class="btn-primary">
+  </div>
+</form>
+
+<div class="form-actions">
+  <a href="{{ url_for('settings_index') }}" class="btn-primary">← 設定メニューに戻る</a>
+</div>
+
+{% endblock %}

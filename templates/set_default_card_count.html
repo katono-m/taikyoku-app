@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align: center; margin-bottom: 1rem;">デフォルトの対局カード数の設定</h2>
+
+<style>
+  .card-count-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .card-count-box {
+    background-color: #fff;
+    padding: 2rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    text-align: center;
+    min-width: 300px;
+  }
+
+  .card-count-box input[type="number"],
+  .card-count-box input[type="text"] {
+    width: 60px;
+    padding: 6px;
+    font-size: 1rem;
+    margin-left: 8px;
+  }
+
+  .card-count-box input[type="submit"],
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 1.5rem;
+  }
+
+  .card-count-box input[type="submit"]:hover,
+  .btn-primary:hover {
+    background-color: #0056b3;
+  }
+
+  .back-link {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .back-link a {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #2c3e50;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+  }
+
+  .back-link a:hover {
+    background-color: #0056b3;
+  }
+</style>
+
+<div class="card-count-container">
+  <form method="post" class="card-count-box">
+    {{ form.csrf_token }}
+    <p>{{ form.count.label }} {{ form.count(size=10) }}</p>
+    <input type="submit" value="保存">
+  </form>
+</div>
+
+<div class="back-link">
+  <a href="{{ url_for('settings_index') }}">← 設定メニューに戻る</a>
+</div>
+
+{% endblock %}

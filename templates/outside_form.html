@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="text-align:center;">活動外成績入力</h2>
+
+<div style="max-width:720px; margin: 1rem auto;">
+  {% if error %}
+    <div style="color:#b83280; margin-bottom:0.75rem;">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" style="display:grid; gap:1rem;">
+    <div>
+      <label>会員：</label><br>
+      <select name="member_id" required style="min-width:260px; padding:0.4rem;">
+        <option value="">-- 選択してください --</option>
+        {% for m in members %}
+          <option value="{{ m.id }}">{{ m.name }}（{{ m.kana }} / {{ m.grade }}）</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label>日付：</label><br>
+      <input type="date" name="occurred_at" value="{{ (now or '') }}" style="padding:0.4rem;">
+      <div style="font-size:0.9em; color:#666;">未指定なら今日の日付として扱います。</div>
+    </div>
+
+    <div>
+      <label>備考：</label><br>
+        <input type="text" name="note" placeholder="例）大会成績により10級に昇級" required
+              style="width:100%; padding:0.5rem;" maxlength="50">
+      <div style="font-size:0.9em; color:#666;">この内容は個人成績の備考と、昇段級履歴の理由に表示されます。</div>
+    </div>
+
+    <fieldset style="border:1px solid #ddd; padding:0.75rem;">
+      <legend style="padding:0 0.5rem;">オプション</legend>
+      <label style="display:flex; gap:0.5rem; align-items:center;">
+        <input type="checkbox" name="do_promote" onchange="document.getElementById('promote-row').style.display=this.checked?'block':'none'">
+        昇段級も反映する
+      </label>
+      <div id="promote-row" style="display:none; margin-top:0.5rem;">
+        <div>
+          <label>新しい段級：</label><br>
+          <select name="new_grade" style="min-width:180px; padding:0.4rem;">
+            {% for g in strengths %}
+              <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <div style="display:flex; gap:0.5rem;">
+      <button type="submit" class="btn">保存</button>
+      <a href="{{ url_for('results_index') }}" class="btn btn-outline">成績管理へ戻る</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // 既定値で今日にする簡易処理
+  (function() {
+    const input = document.querySelector('input[name="occurred_at"]');
+    if (input && !input.value) {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = ('0' + (d.getMonth()+1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      input.value = `${y}-${m}-${day}`;
+    }
+  })();
+</script>
+
+{% endblock %}
