@@ -51,10 +51,12 @@ db_url = os.environ.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_U
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-migrate = Migrate(app, db)
+# models.py の db を import して初期化
+from models import db
+db.init_app(app)
 
-# DB初期化
-db = SQLAlchemy(app)
+# マイグレーション初期化
+migrate = Migrate(app, db)
 
 # --- 勝敗記号の正規化ユーティリティ ---
 # 人が手で入力した「〇/○/◯」の混在を最小限で吸収します。
@@ -157,10 +159,6 @@ def get_current_grade(member_id):
     from models import Member
     member = Member.query.get(member_id)
     return member.grade if member else ""
-
-# DB作成（初回のみ）
-with app.app_context():
-    db.create_all()
 
 def get_setting_value(key: str, default: str = "") -> str:
     s = Setting.query.filter_by(key=key).first()
