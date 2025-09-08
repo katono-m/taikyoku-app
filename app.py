@@ -1,6 +1,8 @@
 import os
 import csv
 import io
+
+from flask_sqlalchemy import SQLAlchemy
 from models import db, Member, Strength, PromotionRule, DefaultCardCount, HandicapRule, Match, MatchResult, GradeHistory, MatchCardState, TodayParticipant, PromotionCounterReset, Setting, InitialAssessmentResult
 from models import MatchMemo, GradeHistory, ActivityOutsideRecord, BlindCount, Club, OwnerAuditLog
 from forms import MemberForm, StrengthCountForm, DefaultCardCountForm
