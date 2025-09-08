@@ -45,14 +45,14 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Flaskアプリ設定
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'database', 'app.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'secret_key_here'
+db_url = os.environ.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_URL") or "sqlite:///database/app.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 migrate = Migrate(app, db)
 
 # DB初期化
-db.init_app(app)
+db = SQLAlchemy(app)
 
 # --- 勝敗記号の正規化ユーティリティ ---
 # 人が手で入力した「〇/○/◯」の混在を最小限で吸収します。
