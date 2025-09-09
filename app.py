@@ -48,6 +48,23 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Flaskアプリ設定
 app = Flask(__name__)
 
+# --- セッション/CSRF 用 Secret Key 設定 ---
+# Render など本番環境では環境変数 SECRET_KEY を必ず設定してください。
+# 未設定の場合は起動時に一時キーを生成します（再起動で変わるため本番では非推奨）。
+_app_secret = (
+    os.environ.get("SECRET_KEY")
+    or os.environ.get("FLASK_SECRET_KEY")
+    or os.environ.get("APP_SECRET_KEY")
+)
+if not _app_secret:
+    _app_secret = secrets.token_hex(32)  # 一時キー（本番では環境変数で固定推奨）
+app.config["SECRET_KEY"] = _app_secret
+app.secret_key = _app_secret  # 念のため（Flaskはこのプロパティも参照）
+
+# セキュリティ関連の推奨設定（本番 https のみ）
+app.config.setdefault("SESSION_COOKIE_SECURE", True)
+app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+
 # 絶対パスのSQLiteをフォールバックにする
 _basedir = os.path.abspath(os.path.dirname(__file__))
 _sqlite_path = os.path.join(_basedir, "database", "app.db")
@@ -63,10 +80,6 @@ db_url = (
 # Render の DATABASE_URL が 'postgres://' で来る場合に補正
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
-
-# 追加の保険①: Postgres なのに sslmode 指定が無い場合は付ける（Renderは通常 ?sslmode=require を付与しますが、無い場合に備える）
-if db_url.startswith("postgresql") and "sslmode=" not in db_url:
-    db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -4485,21 +4498,34 @@ def club_login(club_id):
 @app.route("/owner/login", methods=["GET", "POST"])
 def owner_login():
     if request.method == "POST":
-        owner_id = (request.form.get("owner_id") or "").strip()
+        username = (request.form.get("owner_id") or "").strip()
         password = request.form.get("password") or ""
 
+        # 設定値からオーナー認証情報を取得
         saved_user = get_setting_value(OWNER_AUTH_USER_KEY, "")
         saved_hash = get_setting_value(OWNER_AUTH_PWHASH_KEY, "")
 
-        if owner_id == saved_user and saved_hash and check_password_hash(saved_hash, password):
+        ok = (
+            saved_user
+            and saved_hash
+            and username == saved_user
+            and check_password_hash(saved_hash, password)
+        )
+        if ok:
             session["owner_logged_in"] = True
-            session["owner_login_user"] = owner_id
+            session["owner_login_user"] = saved_user
+            # 代行ログイン状態は念のため解除
+            session.pop("impersonate_club_id", None)
             flash("オーナーとしてログインしました。", "success")
-            return redirect(url_for("owner_clubs_index"))  # 入口はクラブ一覧
+            return redirect(url_for("owner_clubs_index"))
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
 
-    return render_template("owner/login.html")
+    # オーナー専用テンプレートがあればこちらに
+    try:
+        return render_template("owner_login.html")
+    except Exception:
+        return render_template("login.html")
 
 # --- オーナー：ログアウト ---
 @app.get("/owner/logout")
