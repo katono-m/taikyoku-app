@@ -47,9 +47,32 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Flaskアプリ設定
 app = Flask(__name__)
-db_url = os.environ.get("SQLALCHEMY_DATABASE_URI") or os.environ.get("DATABASE_URL") or "sqlite:///database/app.db"
+
+# 絶対パスのSQLiteをフォールバックにする
+_basedir = os.path.abspath(os.path.dirname(__file__))
+_sqlite_path = os.path.join(_basedir, "database", "app.db")
+os.makedirs(os.path.dirname(_sqlite_path), exist_ok=True)
+_sqlite_url = "sqlite:///" + _sqlite_path.replace("\\", "/")
+
+db_url = (
+    os.environ.get("SQLALCHEMY_DATABASE_URI")
+    or os.environ.get("DATABASE_URL")
+    or _sqlite_url
+)
+
+# Render の DATABASE_URL が 'postgres://' で来る場合に補正
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+
+# 追加の保険①: Postgres なのに sslmode 指定が無い場合は付ける（Renderは通常 ?sslmode=require を付与しますが、無い場合に備える）
+if db_url.startswith("postgresql") and "sslmode=" not in db_url:
+    db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
+
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# 追加の保険②: 接続アイドル切れ対策（任意）
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 
 # models.py の db を import して初期化
 from models import db
