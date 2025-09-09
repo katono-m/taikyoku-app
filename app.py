@@ -48,6 +48,18 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Flaskアプリ設定
 app = Flask(__name__)
 
+# ===== 追加：セッション用シークレットキー =====
+# Render 環境変数 SECRET_KEY（または FLASK_SECRET_KEY）があればそれを使う。
+# どちらも無ければ一時的にランダム生成（再起動で無効化されるため本番では必ず環境変数を設定）。
+app.config["SECRET_KEY"] = (
+    os.environ.get("SECRET_KEY")
+    or os.environ.get("FLASK_SECRET_KEY")
+    or __import__("secrets").token_hex(32)
+)
+# セキュリティ関連の推奨設定（本番 https のみ）
+app.config.setdefault("SESSION_COOKIE_SECURE", True)
+app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+
 # 絶対パスのSQLiteをフォールバックにする
 _basedir = os.path.abspath(os.path.dirname(__file__))
 _sqlite_path = os.path.join(_basedir, "database", "app.db")
@@ -63,10 +75,6 @@ db_url = (
 # Render の DATABASE_URL が 'postgres://' で来る場合に補正
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
-
-# 追加の保険①: Postgres なのに sslmode 指定が無い場合は付ける（Renderは通常 ?sslmode=require を付与しますが、無い場合に備える）
-if db_url.startswith("postgresql") and "sslmode=" not in db_url:
-    db_url += ("&" if "?" in db_url else "?") + "sslmode=require"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
