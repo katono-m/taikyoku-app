@@ -4493,21 +4493,17 @@ def club_login(club_id):
 @app.route("/owner/login", methods=["GET", "POST"])
 def owner_login():
     if request.method == "POST":
-        owner_id = (request.form.get("owner_id") or "").strip()
-        password = request.form.get("password") or ""
+        username = request.form.get("owner_id")
+        password = request.form.get("password")
 
-        saved_user = get_setting_value(OWNER_AUTH_USER_KEY, "")
-        saved_hash = get_setting_value(OWNER_AUTH_PWHASH_KEY, "")
-
-        if owner_id == saved_user and saved_hash and check_password_hash(saved_hash, password):
-            session["owner_logged_in"] = True
-            session["owner_login_user"] = owner_id
-            flash("オーナーとしてログインしました。", "success")
-            return redirect(url_for("owner_clubs_index"))  # 入口はクラブ一覧
+        owner = owner.query.filter_by(username=username).first()
+        if owner and check_password_hash(owner.password_hash, password):
+            session["owner_id"] = owner.id
+            flash("ログインしました", "success")
+            return redirect(url_for("owner_clubs_index"))
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
-
-    return render_template("owner/login.html")
+    return render_template("login.html")
 
 # --- オーナー：ログアウト ---
 @app.get("/owner/logout")
