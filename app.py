@@ -48,14 +48,18 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Flaskアプリ設定
 app = Flask(__name__)
 
-# ===== 追加：セッション用シークレットキー =====
-# Render 環境変数 SECRET_KEY（または FLASK_SECRET_KEY）があればそれを使う。
-# どちらも無ければ一時的にランダム生成（再起動で無効化されるため本番では必ず環境変数を設定）。
-app.config["SECRET_KEY"] = (
+# --- セッション/CSRF 用 Secret Key 設定 ---
+# Render など本番環境では環境変数 SECRET_KEY を必ず設定してください。
+# 未設定の場合は起動時に一時キーを生成します（再起動で変わるため本番では非推奨）。
+_app_secret = (
     os.environ.get("SECRET_KEY")
     or os.environ.get("FLASK_SECRET_KEY")
-    or __import__("secrets").token_hex(32)
+    or os.environ.get("APP_SECRET_KEY")
 )
+if not _app_secret:
+    _app_secret = secrets.token_hex(32)  # 一時キー（本番では環境変数で固定推奨）
+app.config["SECRET_KEY"] = _app_secret
+
 # セキュリティ関連の推奨設定（本番 https のみ）
 app.config.setdefault("SESSION_COOKIE_SECURE", True)
 app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
