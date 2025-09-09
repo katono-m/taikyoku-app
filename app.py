@@ -4501,20 +4501,31 @@ def owner_login():
         username = (request.form.get("owner_id") or "").strip()
         password = request.form.get("password") or ""
 
-        # Setting に保存しているオーナー認証情報を参照
+        # 設定値からオーナー認証情報を取得
         saved_user = get_setting_value(OWNER_AUTH_USER_KEY, "")
         saved_hash = get_setting_value(OWNER_AUTH_PWHASH_KEY, "")
 
-        if username == saved_user and saved_hash and check_password_hash(saved_hash, password):
+        ok = (
+            saved_user
+            and saved_hash
+            and username == saved_user
+            and check_password_hash(saved_hash, password)
+        )
+        if ok:
             session["owner_logged_in"] = True
-            session["owner_login_user"] = username
-            flash("ログインしました。", "success")
+            session["owner_login_user"] = saved_user
+            # 代行ログイン状態は念のため解除
+            session.pop("impersonate_club_id", None)
+            flash("オーナーとしてログインしました。", "success")
             return redirect(url_for("owner_clubs_index"))
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
 
-    # 画面は共通テンプレートを利用
-    return render_template("login.html")
+    # オーナー専用テンプレートがあればこちらに
+    try:
+        return render_template("owner_login.html")
+    except Exception:
+        return render_template("login.html")
 
 # --- オーナー：ログアウト ---
 @app.get("/owner/logout")
