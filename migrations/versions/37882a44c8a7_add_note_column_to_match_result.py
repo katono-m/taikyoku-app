@@ -1,7 +1,7 @@
 """Add note column to match_result
 
 Revision ID: 37882a44c8a7
-Revises: 
+Revises:
 Create Date: 2025-08-13 13:49:52.398580
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '37882a44c8a7'
-down_revision = 'a4165976bce3'
+down_revision = None
 branch_labels = None
 depends_on = None
 
