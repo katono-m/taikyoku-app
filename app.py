@@ -59,6 +59,7 @@ _app_secret = (
 if not _app_secret:
     _app_secret = secrets.token_hex(32)  # 一時キー（本番では環境変数で固定推奨）
 app.config["SECRET_KEY"] = _app_secret
+app.secret_key = _app_secret  # 念のため（Flaskはこのプロパティも参照）
 
 # セキュリティ関連の推奨設定（本番 https のみ）
 app.config.setdefault("SESSION_COOKIE_SECURE", True)
@@ -4497,16 +4498,22 @@ def club_login(club_id):
 @app.route("/owner/login", methods=["GET", "POST"])
 def owner_login():
     if request.method == "POST":
-        username = request.form.get("owner_id")
-        password = request.form.get("password")
+        username = (request.form.get("owner_id") or "").strip()
+        password = request.form.get("password") or ""
 
-        owner = owner.query.filter_by(username=username).first()
-        if owner and check_password_hash(owner.password_hash, password):
-            session["owner_id"] = owner.id
-            flash("ログインしました", "success")
+        # Setting に保存しているオーナー認証情報を参照
+        saved_user = get_setting_value(OWNER_AUTH_USER_KEY, "")
+        saved_hash = get_setting_value(OWNER_AUTH_PWHASH_KEY, "")
+
+        if username == saved_user and saved_hash and check_password_hash(saved_hash, password):
+            session["owner_logged_in"] = True
+            session["owner_login_user"] = username
+            flash("ログインしました。", "success")
             return redirect(url_for("owner_clubs_index"))
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
+
+    # 画面は共通テンプレートを利用
     return render_template("login.html")
 
 # --- オーナー：ログアウト ---
