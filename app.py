@@ -3090,12 +3090,21 @@ def get_today_participants():
 # 2. 追加：複数会員を参加者として登録
 @app.route('/api/participants', methods=['POST'])
 def add_today_participants():
-    data = request.get_json()
-    date = data.get("date")
-    ids = data.get("ids", [])
+    # JSONでもフォームでも受け付ける
+    data = request.get_json(silent=True) or {}
+    # 日付は JSON: date / フォーム: date / 未指定なら JST 今日
+    date = (data.get("date")
+            or request.form.get("date")
+            or jst_today_str()).strip()
 
-    if not date or not ids:
-        return jsonify({"success": False, "message": "不正な入力"}), 400
+    # IDs は JSON: ids[] / フォーム: member_ids[]
+    ids = data.get("ids")
+    if ids is None:
+        ids = request.form.getlist("member_ids")
+
+    # 最低限チェック
+    if not ids:
+        return jsonify({"success": False, "message": "不正な入力（idsなし）"}), 400
 
     added = []
     for pid in ids:
@@ -3103,7 +3112,7 @@ def add_today_participants():
             club_id=g.current_club, date=date, participant_id=pid
         ).first()
         if exists:
-            continue  # すでに追加済みならスキップ
+            continue
 
         member = Member.query.filter_by(club_id=g.current_club, id=pid).first()
         if member:
@@ -3122,8 +3131,8 @@ def add_today_participants():
     db.session.commit()
     return jsonify({"success": True, "participants": [
         {"id": e.participant_id,
-        "member_code": (Member.query.get(e.participant_id).member_code or e.participant_id),
-        "name": e.name, "kana": e.kana, "grade": e.grade, "member_type": e.member_type}
+         "member_code": (Member.query.get(e.participant_id).member_code or e.participant_id),
+         "name": e.name, "kana": e.kana, "grade": e.grade, "member_type": e.member_type}
         for e in added
     ]})
 
@@ -4638,14 +4647,9 @@ def update_auth():
 # QR選択画面 ---
 @app.route("/qr/select", methods=["GET"])
 def qr_select():
-    # クラブ境界で絞り込み + 退会者除外
-    from sqlalchemy import and_, case, cast, Integer  # ← 既にimport済みなら追加不要
-
-    # 「数字のみ」にマッチするか（例:  "123" はTrue、"1A"や"A1"はFalse）
-    is_numeric_code = and_(
-        Member.member_code.op('GLOB')('[0-9]*'),
-        ~Member.member_code.op('GLOB')('*[^0-9]*')
-    )
+    # 「数字だけ」判定と「安全な数値値」をヘルパで取得（方言対応）
+    is_numeric = case((expr_member_code_is_numeric(), 1), else_=0)
+    num_value  = expr_member_code_numeric_value()
 
     members = (Member.query
                .filter(
@@ -4653,11 +4657,11 @@ def qr_select():
                    Member.club_id == g.current_club
                )
                .order_by(
-                   # まず「数字のみ」を先に（True=1 を降順）
-                   case((is_numeric_code, 1), else_=0).desc(),
-                   # 次に数値化して昇順（数字のみの行にだけ効く）
-                   cast(Member.member_code, Integer).asc(),
-                   # 英字混じり（またはNULL）のときは通常の文字列昇順
+                   # 数字のみ(1)を先に
+                   is_numeric.desc(),
+                   # 数字グループは数値昇順、非数値はNULL→後ろ
+                   num_value.asc(),
+                   # 最後に文字列で安定化
                    Member.member_code.asc()
                )
                .all())
@@ -4816,21 +4820,19 @@ def api_regenerate_qr_token(member_id: str):
 
 @app.get("/blind_counts")
 def blind_counts_index():
-    # 「完全に数字だけ」のIDを先にし、数字は数値順、英字混じりは文字列順
-    is_numeric = and_(
-        Member.member_code.op('GLOB')('[0-9]*'),        # 先頭は数字
-        ~Member.member_code.op('GLOB')('*[^0-9]*')      # 非数字を含まない（= 全部数字）
-    )
+    # 方言対応ヘルパを使用
+    is_numeric_flag = case((expr_member_code_is_numeric(), 0), else_=1)
+    num_value       = expr_member_code_numeric_value()
 
     members = (Member.query
                .filter(Member.left_at.is_(None),
                        Member.club_id == g.current_club)
                .order_by(
-                   # 数字だけ(0)が先、その後に英字混じり(1)
-                   case((is_numeric, 0), else_=1),
-                   # 数字だけの場合は整数として昇順
-                   cast(Member.member_code, Integer),
-                   # 英字混じりは文字列順（保険として最後に並べる）
+                   # 数字だけ(0)を先、その後に英字混じり(1)
+                   is_numeric_flag.asc(),
+                   # 数字グループのみ値が入り昇順、非数値はNULLで後ろ
+                   num_value.asc(),
+                   # 最後に文字列で安定化
                    Member.member_code.asc()
                )
                .all())
