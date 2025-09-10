@@ -4,7 +4,7 @@ import io
 
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Member, Strength, PromotionRule, DefaultCardCount, HandicapRule, Match, MatchResult, GradeHistory, MatchCardState, TodayParticipant, PromotionCounterReset, Setting, InitialAssessmentResult
-from models import MatchMemo, GradeHistory, ActivityOutsideRecord, BlindCount, Club, OwnerAuditLog
+from models import MatchMemo, GradeHistory, ActivityOutsideRecord, BlindCount, Club, OwnerAuditLog, Owner
 from forms import MemberForm, StrengthCountForm, DefaultCardCountForm
 from flask import session, abort
 from flask import send_file
@@ -217,11 +217,11 @@ OWNER_AUTH_USER_KEY = "OWNER_AUTH_USER"
 OWNER_AUTH_PWHASH_KEY = "OWNER_AUTH_PWHASH"
 
 def ensure_default_owner():
-    # まだ未設定なら、デフォルト owner / ownerpass を入れておく
-    if not get_setting_value(OWNER_AUTH_USER_KEY, ""):
-        set_setting_value(OWNER_AUTH_USER_KEY, "owner")
-    if not get_setting_value(OWNER_AUTH_PWHASH_KEY, ""):
-        set_setting_value(OWNER_AUTH_PWHASH_KEY, generate_password_hash("ownerpass"))
+    """Ownerテーブルにデフォルト owner / ownerpass を用意（初回のみ）"""
+    exists = Owner.query.filter_by(username="owner").first()
+    if not exists:
+        db.session.add(Owner(username="owner", password_hash=generate_password_hash("ownerpass")))
+        db.session.commit()
 
 def ensure_default_admin():
     """
@@ -4501,27 +4501,17 @@ def owner_login():
         username = (request.form.get("owner_id") or "").strip()
         password = request.form.get("password") or ""
 
-        # 設定値からオーナー認証情報を取得
-        saved_user = get_setting_value(OWNER_AUTH_USER_KEY, "")
-        saved_hash = get_setting_value(OWNER_AUTH_PWHASH_KEY, "")
-
-        ok = (
-            saved_user
-            and saved_hash
-            and username == saved_user
-            and check_password_hash(saved_hash, password)
-        )
+        owner = Owner.query.filter_by(username=username).first()
+        ok = owner and check_password_hash(owner.password_hash, password)
         if ok:
             session["owner_logged_in"] = True
-            session["owner_login_user"] = saved_user
-            # 代行ログイン状態は念のため解除
-            session.pop("impersonate_club_id", None)
+            session["owner_login_user"] = owner.username
+            session.pop("impersonate_club_id", None)  # 念のため
             flash("オーナーとしてログインしました。", "success")
             return redirect(url_for("owner_clubs_index"))
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
 
-    # オーナー専用テンプレートがあればこちらに
     try:
         return render_template("owner_login.html")
     except Exception:
@@ -4541,7 +4531,6 @@ def owner_logout():
 # --- オーナー：認証情報の更新（ID/パスワード） ---
 @app.post("/owner/auth/update")
 def owner_auth_update():
-    # ここでは簡易チェック（/owner/* ガードは before_request 側で実施想定）
     if not session.get("owner_logged_in"):
         return redirect(url_for("owner_login"))
 
@@ -4552,13 +4541,24 @@ def owner_auth_update():
         flash("オーナーIDを入力してください。", "error")
         return redirect(url_for("owner_clubs_index"))
 
-    # IDは必須で更新
-    set_setting_value(OWNER_AUTH_USER_KEY, new_id)
+    # 現在ログインしているオーナーを取得（単一想定）
+    cur_name = session.get("owner_login_user") or "owner"
+    owner = Owner.query.filter_by(username=cur_name).first() or Owner.query.filter_by(username="owner").first()
+    if not owner:
+        owner = Owner(username=new_id, password_hash=generate_password_hash(new_pw or "ownerpass"))
+        db.session.add(owner)
+        db.session.commit()
+        session["owner_login_user"] = owner.username
+        flash("オーナー認証情報を更新しました。", "success")
+        return redirect(url_for("owner_clubs_index"))
 
+    # ID更新
+    owner.username = new_id
     # パスワードは入力があった時のみ更新
     if new_pw:
-        set_setting_value(OWNER_AUTH_PWHASH_KEY, generate_password_hash(new_pw))
-
+        owner.password_hash = generate_password_hash(new_pw)
+    db.session.commit()
+    session["owner_login_user"] = owner.username
     flash("オーナー認証情報を更新しました。", "success")
     return redirect(url_for("owner_clubs_index"))
 
