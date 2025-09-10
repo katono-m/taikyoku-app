@@ -191,6 +191,36 @@ app.jinja_env.globals.update(
     jst_today_str=jst_today_str,
 )
 
+# --- DB方言に応じて「member_code が数字だけ」を判定する式を返すヘルパ ---
+def expr_member_code_is_numeric():
+    """
+    return: SQLAlchemy のブール式
+      - PostgreSQL:  member_code ~ '^[0-9]+$'
+      - SQLite:      member_code GLOB '[0-9]*' AND NOT GLOB '*[^0-9]*'
+    """
+    dialect = db.session.bind.dialect.name  # 'postgresql' / 'sqlite' など
+    if dialect == "postgresql":
+        return Member.member_code.op('~')('^[0-9]+$')
+    else:
+        # SQLite想定（GLOB利用）
+        return and_(
+            Member.member_code.op('GLOB')('[0-9]*'),
+            not_(Member.member_code.op('GLOB')('*[^0-9]*'))
+        )
+
+# --- 並び替えで使う「数値値」も安全に作る（数字だけの時だけCAST） ---
+from sqlalchemy import null
+def expr_member_code_numeric_value():
+    """
+    return: CASE WHEN is_numeric THEN CAST(member_code AS INTEGER) ELSE NULL END
+            ※ 非数値にCASTしないのでPostgreSQLでも安全
+    """
+    is_numeric = expr_member_code_is_numeric()
+    return case(
+        (is_numeric, cast(Member.member_code, Integer)),
+        else_=null()
+    )
+
 def get_current_grade(member_id):
     from models import Member
     member = Member.query.get(member_id)
@@ -495,25 +525,25 @@ def members():
         sort_col = sort_col.asc() if sort_order == 'asc' else sort_col.desc()
         members = query.order_by(sort_col).all()
     elif sort_key == 'member_code' or sort_key == '' or sort_key is None:
-        # ★ 数値だけのIDは整数として、英字混じりは文字列でソート
-        #    is_numeric=1 を先に（= 数値IDを先に並べる）。逆にしたい場合は asc/desc を入れ替え。
-        numeric_only = and_(
-            Member.member_code.op('GLOB')('[0-9]*'),
-            not_(Member.member_code.op('GLOB')('*[^0-9]*'))
-        )
-        is_numeric = case((numeric_only, 1), else_=0)
+        # 数値だけ→数値順、英字混じり→文字順（DB方言対応）
+        is_numeric = case((expr_member_code_is_numeric(), 1), else_=0)
+        num_value  = expr_member_code_numeric_value()
 
         if sort_order == 'desc':
             members = (query
-                       .order_by(is_numeric.asc(),      # 数値でない→先
-                                 cast(Member.member_code, Integer).desc(),
-                                 Member.member_code.desc())
+                       .order_by(
+                           is_numeric.asc(),     # 数値でない → 先
+                           num_value.desc(),     # 数値グループ内は数値降順
+                           Member.member_code.desc()
+                       )
                        .all())
         else:
             members = (query
-                       .order_by(is_numeric.desc(),     # 数値→先
-                                 cast(Member.member_code, Integer).asc(),
-                                 Member.member_code.asc())
+                       .order_by(
+                           is_numeric.desc(),    # 数値 → 先
+                           num_value.asc(),      # 数値グループ内は数値昇順
+                           Member.member_code.asc()
+                       )
                        .all())
     else:
         # その他の列は従来どおり
@@ -1088,20 +1118,17 @@ def export_members():
     #   2) 数字だけの member_code を数値グループとして先に並べ、数値昇順
     #   3) 英字を含むものは文字昇順
     #   4) 同値時は name → kana
-    numeric_only = and_(
-        Member.member_code.op('GLOB')('[0-9]*'),
-        not_(Member.member_code.op('GLOB')('*[^0-9]*'))
-    )
-    is_numeric = case((numeric_only, 1), else_=0)
+    is_numeric = case((expr_member_code_is_numeric(), 1), else_=0)
+    num_value  = expr_member_code_numeric_value()
 
     q = (
         Member.query
         .filter_by(club_id=g.current_club, is_active=True)
         .order_by(
-            (Member.member_code.is_(None)).asc(),        # None を最後へ
-            is_numeric.desc(),                           # 数字のみ(1) → 先
-            cast(Member.member_code, Integer).asc(),     # 数字グループは数値昇順
-            Member.member_code.asc(),                    # 英字混じりは文字昇順
+            (Member.member_code.is_(None)).asc(),  # None を最後へ
+            is_numeric.desc(),                      # 数字のみ(1) → 先
+            num_value.asc(),                        # 数値グループは数値昇順
+            Member.member_code.asc(),               # 英字混じりは文字昇順
             Member.name.asc(),
             Member.kana.asc()
         )
@@ -1148,21 +1175,18 @@ def delete_member(member_id):
 @app.route("/members/inactive")
 def inactive_members():
     # 数字だけの member_code は数値順、英字を含むものは文字順
-    from sqlalchemy import case, cast, Integer, String
+    from sqlalchemy import case
 
     q = Member.query.filter_by(club_id=g.current_club, is_active=False)
 
-    # 数字のみ判定：文字列→整数→文字列に往復して等しいなら「数字だけ」
-    is_numeric = case(
-        (Member.member_code == cast(cast(Member.member_code, Integer), String), 0),
-        else_=1
-    )
+    is_numeric = case((expr_member_code_is_numeric(), 0), else_=1)
+    num_value  = expr_member_code_numeric_value()
 
     inactive = (
         q.order_by(
-            is_numeric.asc(),                          # 0(=数字)→1(=英字入り)
-            cast(Member.member_code, Integer).asc(),   # 数字グループ内は数値昇順
-            Member.member_code.asc()                   # 英字入りグループは文字昇順
+            is_numeric.asc(),   # 0(=数字) → 1(=英字入り)
+            num_value.asc(),    # 数値グループは数値昇順
+            Member.member_code.asc()
         ).all()
     )
     return render_template("members_inactive.html", members=inactive)
@@ -1237,24 +1261,26 @@ def match_edit():
         sort_column = member_type_order.asc() if order_members == 'asc' else member_type_order.desc()
         members = members_query.order_by(sort_column).all()
     elif sort_members == 'member_code' or not sort_members:
-        numeric_only = and_(
-            Member.member_code.op('GLOB')('[0-9]*'),
-            not_(Member.member_code.op('GLOB')('*[^0-9]*'))
-        )
-        is_numeric = case((numeric_only, 1), else_=0)
+        is_numeric = case((expr_member_code_is_numeric(), 1), else_=0)
+        num_value  = expr_member_code_numeric_value()
 
         if order_members == 'desc':
             members = (members_query
-                       .order_by(is_numeric.asc(),
-                                 cast(Member.member_code, Integer).desc(),
-                                 Member.member_code.desc())
+                       .order_by(
+                           is_numeric.asc(),
+                           num_value.desc(),
+                           Member.member_code.desc()
+                       )
                        .all())
         else:
             members = (members_query
-                       .order_by(is_numeric.desc(),
-                                 cast(Member.member_code, Integer).asc(),
-                                 Member.member_code.asc())
+                       .order_by(
+                           is_numeric.desc(),
+                           num_value.asc(),
+                           Member.member_code.asc()
+                       )
                        .all())
+
     else:
         sort_column = getattr(Member, sort_members, Member.id)
         if order_members == 'desc':
@@ -1293,25 +1319,22 @@ def match_play():
         )
         sort_column = sort_column.asc() if sort_order == 'asc' else sort_column.desc()
     elif sort_key == 'member_code' or not sort_key:
-        numeric_only = and_(
-            Member.member_code.op('GLOB')('[0-9]*'),
-            not_(Member.member_code.op('GLOB')('*[^0-9]*'))
-        )
-        is_numeric = case((numeric_only, 1), else_=0)
+        is_numeric = case((expr_member_code_is_numeric(), 1), else_=0)
+        num_value  = expr_member_code_numeric_value()
 
         if sort_order == 'desc':
-            # ▼ 下の participants を作る前に order_by で使うので、リストではなく式を積む
             sort_column = (
                 is_numeric.asc(),
-                cast(Member.member_code, Integer).desc(),
+                num_value.desc(),
                 Member.member_code.desc()
             )
         else:
             sort_column = (
                 is_numeric.desc(),
-                cast(Member.member_code, Integer).asc(),
+                num_value.asc(),
                 Member.member_code.asc()
             )
+
     else:
         sort_columns = {
             'id': Member.id,
