@@ -198,7 +198,7 @@ def expr_member_code_is_numeric():
       - PostgreSQL:  member_code ~ '^[0-9]+$'
       - SQLite:      member_code GLOB '[0-9]*' AND NOT GLOB '*[^0-9]*'
     """
-    dialect = db.session.bind.dialect.name  # 'postgresql' / 'sqlite' など
+    dialect = db.engine.dialect.name  # ← ここを修正（session.bind は None になり得る）
     if dialect == "postgresql":
         return Member.member_code.op('~')('^[0-9]+$')
     else:
