@@ -11,8 +11,8 @@ from sqlalchemy.sql import text
 import os
 
 # revision identifiers, used by Alembic.
-revision = 'xxxxxxxx'   # ← 自動生成されたIDのままでOK
-down_revision = 'YYYYYYYY'  # ← 直前の add owner table のIDに置き換わっているはず
+revision = 'dc74f9504160'     # ← 先頭ヘッダ「Revision ID」と同じ
+down_revision = '7ce57afbbcbd' # ← 先頭ヘッダ「Revises」と同じ
 branch_labels = None
 depends_on = None
 
