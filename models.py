@@ -166,7 +166,7 @@ class TodayParticipant(db.Model):
     )
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String, nullable=False)
-    participant_id = db.Column(db.Integer, nullable=False)
+    participant_id = db.Column(db.String(20), nullable=False)  # ← 文字列IDに統一（Member.idに合わせる）
     name = db.Column(db.String)
     kana = db.Column(db.String)
     grade = db.Column(db.String)
