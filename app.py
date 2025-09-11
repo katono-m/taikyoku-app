@@ -4602,10 +4602,7 @@ def owner_login():
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
 
-    try:
-        return render_template("owner_login.html")
-    except Exception:
-        return render_template("login.html")
+        return render_template("owner/login.html")
 
 # --- オーナー：ログアウト ---
 @app.get("/owner/logout")
