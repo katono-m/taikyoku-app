@@ -4602,7 +4602,10 @@ def owner_login():
         else:
             flash("オーナーIDまたはパスワードが違います。", "error")
 
+        # POST 失敗時はログイン画面を再表示
         return render_template("owner/login.html")
+
+    return render_template("owner/login.html")
 
 # --- オーナー：ログアウト ---
 @app.get("/owner/logout")
