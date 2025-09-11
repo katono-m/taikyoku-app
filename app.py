@@ -3420,7 +3420,8 @@ def get_default_card_count():
         club_id=g.current_club, key='default_card_count'
     ).first()
     count = int(setting.value) if (setting and (setting.value or "").isdigit()) else 5
-    return jsonify({"default_card_count": count})
+    # 両方のキーを返して互換性を確保
+    return jsonify({"count": count, "default_card_count": count})
 
 @app.route("/api/match_card_state/delete", methods=["DELETE"]) # 手合い解除等でカード初期化
 def clear_match_card_state():
