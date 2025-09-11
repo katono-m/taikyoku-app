@@ -293,16 +293,14 @@ def generate_qr_code(member_id, member_name):
 
 def _get_jp_font(size=24):
     """
-    日本語表示可能なフォントを順に試す。
-    1) <プロジェクト内> static/fonts/NotoSansJP-Regular.ttf（絶対パスで解決）
-    2) Linux系の一般的なNoto CJK
-    3) Windows標準（Meiryo / MSゴシック / MS明朝）
-    4) 最後にデフォルト（英数のみ）
+    日本語表示可能なフォントを順に試す（どれを掴んだかログ出力）。
+    1) <プロジェクト内> static/fonts/NotoSansJP-Regular.ttf
+    2) Linux系のNoto CJK
+    3) Windows標準
+    4) 最後にデフォルト
     """
-    # app.py 冒頭付近で定義済みの basedir を使って絶対パス化（※ basedir は既にあります）
-    # basedir = os.path.abspath(os.path.dirname(__file__))  ← 既存
     candidates = [
-        Path(os.path.join(basedir, "static", "fonts", "NotoSansJP-Regular.ttf")),  # ← 絶対パスで確実に読みに行く
+        Path(os.path.join(basedir, "static", "fonts", "NotoSansJP-Regular.ttf")),
         Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
         Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
         Path("/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf"),
@@ -311,14 +309,28 @@ def _get_jp_font(size=24):
         Path("C:/Windows/Fonts/msgothic.ttc"),
         Path("C:/Windows/Fonts/msmincho.ttc"),
     ]
+
     for p in candidates:
         try:
+            if not p.exists():
+                continue
+            # .ttc は index=0、.ttf/.otf はそのまま
             if p.suffix.lower() == ".ttc":
-                return ImageFont.truetype(str(p), size, index=0)
+                font = ImageFont.truetype(str(p), size, index=0)
             else:
-                return ImageFont.truetype(str(p), size)
-        except Exception:
+                # 一部環境でパス解決に失敗するケースに備えて bytes 読み込みでも試す
+                try:
+                    font = ImageFont.truetype(str(p), size)
+                except Exception:
+                    with open(p, "rb") as f:
+                        font = ImageFont.truetype(io.BytesIO(f.read()), size)
+            app.logger.info(f"[QR-FONT] using: {p}")
+            return font
+        except Exception as e:
+            app.logger.warning(f"[QR-FONT] failed: {p} ({e})")
             continue
+
+    app.logger.error("[QR-FONT] fallback to default font (no JP glyphs)")
     return ImageFont.load_default()
 
 def next_grade_of(current_grade: str) -> str | None:
