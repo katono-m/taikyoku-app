@@ -2847,18 +2847,57 @@ def record_result():
 
     return jsonify({"success": True, "message": "対局結果を記録しました。"})
 
-@app.route('/api/match_card_state/save', methods=['POST']) # 現在のカード状態を全件保存
+@app.route('/api/match_card_state/save', methods=['POST'])  # 単一 or 複数カード保存
 def save_match_card_state():
     data = request.get_json()
     date = data.get("date")
     cards = data.get("cards", [])
 
-    # まず該当日のデータを削除してから、全カードを再保存
+    if not date:
+        return jsonify({"result": "ng", "message": "date is required"}), 400
+
+    # 🟢 単一カード：UPSERT（当該カードだけ更新/挿入）＝他カードは消さない
+    if len(cards) == 1:
+        card = cards[0]
+        idx = card.get("index")
+        if idx is None:
+            return jsonify({"result": "ng", "message": "card.index is required"}), 400
+
+        existing = (MatchCardState.query
+                    .filter_by(club_id=g.current_club, date=date, card_index=idx)
+                    .first())
+        if existing:
+            existing.match_type    = card.get("match_type")
+            existing.p1_id         = card.get("p1_id")
+            existing.p2_id         = card.get("p2_id")
+            existing.status        = card.get("status")
+            existing.info_html     = card.get("info_html")
+            existing.original_html1= card.get("original_html1")
+            existing.original_html2= card.get("original_html2")
+        else:
+            new_card = MatchCardState(
+                club_id=g.current_club,
+                date=date,
+                card_index=idx,
+                match_type=card.get("match_type"),
+                p1_id=card.get("p1_id"),
+                p2_id=card.get("p2_id"),
+                status=card.get("status"),
+                info_html=card.get("info_html"),
+                original_html1=card.get("original_html1"),
+                original_html2=card.get("original_html2"),
+            )
+            db.session.add(new_card)
+
+        db.session.commit()
+        return jsonify({"result": "ok", "mode": "upsert-one"})
+
+    # 🟡 複数カード（「全て保存」など）：従来通り 全削除→再保存
     MatchCardState.query.filter_by(club_id=g.current_club, date=date).delete()
 
     for card in cards:
         new_card = MatchCardState(
-            club_id=g.current_club,  # ★必須
+            club_id=g.current_club,
             date=date,
             card_index=card.get("index"),
             match_type=card.get("match_type"),
@@ -2867,12 +2906,12 @@ def save_match_card_state():
             status=card.get("status"),
             info_html=card.get("info_html"),
             original_html1=card.get("original_html1"),
-            original_html2=card.get("original_html2")
+            original_html2=card.get("original_html2"),
         )
         db.session.add(new_card)
 
     db.session.commit()
-    return jsonify({"result": "ok"})
+    return jsonify({"result": "ok", "mode": "bulk-replace"})
 
 @app.route('/api/match_card_state/load', methods=['GET']) # DBからカード状態を復元
 def load_match_card_state():
