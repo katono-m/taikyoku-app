@@ -70,7 +70,7 @@
         <td>{{ m.member_type }}</td>
         <td>
           {% if m.left_at %}
-            {{ m.left_at.strftime("%Y-%m-%d %H:%M") }}
+            {{ format_utc_naive_to_local_display(m.left_at) }}
           {% else %}
             -
           {% endif %}

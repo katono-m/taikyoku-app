@@ -168,11 +168,18 @@ def jst_date_range_to_utc_naive(start_str: str, end_str: str):
     return start_dt_utc, end_dt_utc
 
 def to_jst_date_str(utc_naive_dt: datetime) -> str:
-    """DBのUTC naive日時をJSTの'YYYY-MM-DD'の文字列にして返す。"""
+    """DBのUTC naive日時をJSTの日付 'YYYY-MM-DD' にして返す。"""
     if not utc_naive_dt:
         return "-"
     dt = utc_naive_dt.replace(tzinfo=UTC)
     return dt.astimezone(JST).strftime("%Y-%m-%d")
+
+def to_jst_datetime_local_str(utc_naive_dt: datetime) -> str:
+    """DBのUTC naive日時をJSTのdatetime-local形式 'YYYY-MM-DDTHH:MM' にして返す。"""
+    if not utc_naive_dt:
+        return ""
+    dt = utc_naive_dt.replace(tzinfo=UTC)
+    return dt.astimezone(JST).strftime("%Y-%m-%dT%H:%M")
 
 def format_utc_naive_to_local_display(dt: datetime) -> str:
     """
@@ -186,7 +193,7 @@ def format_utc_naive_to_local_display(dt: datetime) -> str:
 
 app.jinja_env.globals.update(
     to_jst_date_str=to_jst_date_str,
-    format_utc_naive_to_local_input=format_utc_naive_to_local_input,
+    to_jst_datetime_local_str=to_jst_datetime_local_str,  # 追加：datetime-local用
     format_utc_naive_to_local_display=format_utc_naive_to_local_display,
     jst_today_str=jst_today_str,
 )
@@ -3709,16 +3716,8 @@ def results_edit_index():
     start_str = (request.args.get("start") or "").strip()
     end_str   = (request.args.get("end") or "").strip()
 
-    start_dt = None
-    end_dt = None
-    try:
-        if start_str:
-            start_dt = datetime.strptime(start_str, "%Y-%m-%d")
-        if end_str:
-            end_dt = datetime.strptime(end_str, "%Y-%m-%d") + timedelta(days=1) - timedelta(seconds=1)
-    except ValueError:
-        start_dt = None
-        end_dt = None
+    # JST 'YYYY-MM-DD' → UTC naive [start,end] に変換
+    start_dt, end_dt = jst_date_range_to_utc_naive(start_str, end_str)
 
     # 対象Matchを期間で抽出（古い順）★クラブ境界を必ず付与
     q = db.session.query(Match).options(

@@ -27,7 +27,7 @@
       {% for r in resets %}
       <tr data-id="{{ r.id }}">
         <td style="text-align:left; padding:6px 8px;">
-          <input type="datetime-local" class="dt" value="{{ r.reset_date.isoformat()[:16] }}">
+          <input type="datetime-local" class="dt" value="{{ to_jst_date_str(r.reset_date) }}">
         </td>
         <td style="text-align:left; padding:6px 8px;">
           <button class="btn save">保存</button>
