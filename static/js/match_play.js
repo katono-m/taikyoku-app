@@ -154,7 +154,7 @@ function renderMatchCards(cards) {
   if (!cards || cards.length === 0) {
     // カード情報がない場合は default_card_count に従って空のカードを生成
     fetchDefaultCardCount().then(defaultCount => {
-      const existingIndices = new Set(cards.map(c => c.card_index));
+      const existingIndices = new Set((cards || []).map(c => c.card_index));
       for (let i = 0; i < defaultCount; i++) {
         if (!existingIndices.has(i)) {
           const emptyCard = createMatchCard(i);
@@ -330,6 +330,18 @@ function renderMatchCards(cards) {
       }
     }
   });
+
+  // ★追加：保存枚数が既定枚数より少ないときは不足分を空カードで補充
+  fetchDefaultCardCount().then(defaultCount => {
+    const existingIndices = new Set(cards.map(c => c.card_index));
+    for (let i = 0; i < defaultCount; i++) {
+      if (!existingIndices.has(i)) {
+        const emptyCard = createMatchCard(i);
+        container.appendChild(emptyCard);
+      }
+    }
+  });
+
 }
 
 // ✅ 新規カードの初期HTML構造を生成
