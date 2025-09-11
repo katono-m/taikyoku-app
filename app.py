@@ -294,12 +294,19 @@ def generate_qr_code(member_id, member_name):
 def _get_jp_font(size=24):
     """
     日本語表示可能なフォントを順に試す。
-    1) static/fonts/NotoSansJP-Regular.ttf（プロジェクト同梱推奨）
-    2) Windows標準（Meiryo / MSゴシック / MS明朝）
-    3) 最後にデフォルト（英数のみ。豆腐になる）
+    1) <プロジェクト内> static/fonts/NotoSansJP-Regular.ttf（絶対パスで解決）
+    2) Linux系の一般的なNoto CJK
+    3) Windows標準（Meiryo / MSゴシック / MS明朝）
+    4) 最後にデフォルト（英数のみ）
     """
+    # app.py 冒頭付近で定義済みの basedir を使って絶対パス化（※ basedir は既にあります）
+    # basedir = os.path.abspath(os.path.dirname(__file__))  ← 既存
     candidates = [
-        Path("static/fonts/NotoSansJP-Regular.ttf"),
+        Path(os.path.join(basedir, "static", "fonts", "NotoSansJP-Regular.ttf")),  # ← 絶対パスで確実に読みに行く
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJKjp-Regular.otf"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansCJKjp-Regular.otf"),
         Path("C:/Windows/Fonts/meiryo.ttc"),
         Path("C:/Windows/Fonts/msgothic.ttc"),
         Path("C:/Windows/Fonts/msmincho.ttc"),
@@ -307,7 +314,7 @@ def _get_jp_font(size=24):
     for p in candidates:
         try:
             if p.suffix.lower() == ".ttc":
-                return ImageFont.truetype(str(p), size, index=0)  # TTCはindex=0でOK
+                return ImageFont.truetype(str(p), size, index=0)
             else:
                 return ImageFont.truetype(str(p), size)
         except Exception:
@@ -1161,7 +1168,7 @@ def delete_member(member_id):
         .first()
     )
     if in_today:
-        flash("この会員は現在参加中ですので削除できません", "error")
+        flash("この会員は現在参加中ですので退会できません", "error")
         return redirect(url_for('members'))
 
     # 退会（論理削除）
