@@ -5047,16 +5047,20 @@ def api_counter_resets_add():
     data = request.get_json(silent=True) or {}
     member_id = (data.get("member_id") or "").strip()
     dt = data.get("reset_date")
+
+    # 入力: JSTの 'YYYY-MM-DDTHH:MM'（datetime-local）→ DB: UTC naive
     try:
-        from datetime import datetime
-        reset_dt = datetime.fromisoformat(dt)
+        reset_dt = parse_local_to_utc_naive(dt)
     except Exception:
         return jsonify(success=False, message="日時の形式が不正です"), 400
 
-    if not Member.query.get(member_id):
+    # クラブ境界で会員確認（退会等の判定は任意）
+    m = Member.query.filter_by(id=member_id, club_id=g.current_club).first()
+    if not m:
         return jsonify(success=False, message="会員が見つかりません"), 404
 
-    db.session.add(PromotionCounterReset(member_id=member_id, reset_date=reset_dt))
+    # club_id を必ず保存
+    db.session.add(PromotionCounterReset(member_id=member_id, reset_date=reset_dt, club_id=g.current_club))
     db.session.commit()
     return jsonify(success=True)
 
@@ -5065,14 +5069,24 @@ def api_counter_resets_update():
     data = request.get_json(silent=True) or {}
     rid = data.get("id")
     dt = data.get("reset_date")
+
     row = PromotionCounterReset.query.get(rid)
     if not row:
         return jsonify(success=False, message="対象がありません"), 404
-    from datetime import datetime
+
+    # クラブ越え更新防止：現在クラブのレコードのみ更新可
+    if row.club_id and row.club_id != g.current_club:
+        return jsonify(success=False, message="権限がありません"), 403
+
     try:
-        row.reset_date = datetime.fromisoformat(dt)
+        row.reset_date = parse_local_to_utc_naive(dt)
     except Exception:
         return jsonify(success=False, message="日時の形式が不正です"), 400
+
+    # row.club_id が未設定の古いデータは、ついでに補完しておく（任意）
+    if not row.club_id:
+        row.club_id = g.current_club
+
     db.session.commit()
     return jsonify(success=True)
 
