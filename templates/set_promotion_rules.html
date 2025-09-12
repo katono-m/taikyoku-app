@@ -66,7 +66,7 @@
   }
 </style>
 
-<form method="POST">
+<form id="promotion-form" method="POST" novalidate>
   <div class="promo-table-container">
     <table class="promo-table">
       <thead>
@@ -81,7 +81,7 @@
         {% for pair in pairs %}
         {% set key = (pair[0], pair[1]) %}
         {% set rule = existing_rules.get(key) %}
-        <tr>
+        <tr class="promotion-row" data-index="{{ loop.index0 }}">
           <td>{{ pair[0] }} → {{ pair[1] }}</td>
           <td>
             <input type="number" name="win_streak_{{ loop.index0 }}" min="1" value="{{ rule.win_streak if rule and rule.win_streak is not none }}">
@@ -116,23 +116,36 @@
 <script>
   document.addEventListener("DOMContentLoaded", function() {
     const form = document.getElementById("promotion-form");
+    if (!form) return; // 念のため
+
     form.addEventListener("submit", function(event) {
       let hasEmptyRow = false;
+      let firstEmptyRow = null;
+
       document.querySelectorAll(".promotion-row").forEach(row => {
-        const inputs = row.querySelectorAll("input");
+        const inputs = row.querySelectorAll("input[type='number']");
+        // 行内の全入力が空＝完全空欄行
         let allEmpty = true;
         inputs.forEach(inp => {
-          if (inp.value.trim() !== "") {
+          if ((inp.value || "").trim() !== "") {
             allEmpty = false;
           }
         });
         if (allEmpty) {
           hasEmptyRow = true;
+          if (!firstEmptyRow) firstEmptyRow = row;
         }
       });
+
       if (hasEmptyRow) {
         event.preventDefault();
         alert("昇段級条件が入力されていない項目があります");
+        // 先頭の空欄行へスクロール＆一時的に強調
+        if (firstEmptyRow) {
+          firstEmptyRow.scrollIntoView({ behavior: "smooth", block: "center" });
+          firstEmptyRow.style.outline = "2px solid #e74c3c";
+          setTimeout(() => { firstEmptyRow.style.outline = ""; }, 2000);
+        }
       }
     });
   });
