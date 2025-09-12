@@ -4559,8 +4559,7 @@ def login():
                 flash("現在システムオーナーによりシステム利用を停止されています。", "error")
                 return render_template("login.html")
             if getattr(target_club, "status", "active") == "deleted":
-                # 削除は「存在しない」扱い
-                flash("IDまたはパスワードが違います。", "error")
+                flash("当該クラブは削除されています。", "error")
                 return render_template("login.html")
 
             # パスワード検証
