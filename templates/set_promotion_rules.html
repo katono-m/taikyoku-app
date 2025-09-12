@@ -112,32 +112,29 @@
 
 {% endblock %}
 
+{% block scripts %}
 <script>
-  // 昇段級基準の保存前クライアント検証
-  (function () {
-    const form = document.querySelector('form');
-    if (!form) return;
-
-    form.addEventListener('submit', function (e) {
-      const rows = document.querySelectorAll('.promo-table tbody tr');
-      for (const row of rows) {
-        // 各行の数値入力（5つ）を取得
-        const inputs = row.querySelectorAll('input[type="number"]');
-        // すべて空欄か？
-        const allEmpty = Array.from(inputs).every(inp => (inp.value === '' || inp.value === null));
-
+  document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("promotion-form");
+    form.addEventListener("submit", function(event) {
+      let hasEmptyRow = false;
+      document.querySelectorAll(".promotion-row").forEach(row => {
+        const inputs = row.querySelectorAll("input");
+        let allEmpty = true;
+        inputs.forEach(inp => {
+          if (inp.value.trim() !== "") {
+            allEmpty = false;
+          }
+        });
         if (allEmpty) {
-          // 行頭の「◯◯ → ◯◯」を取得（1列目セル）
-          const headCell = row.querySelector('td');
-          const pairLabel = headCell ? headCell.textContent.trim() : 'この行';
-
-          alert(`「${pairLabel}」の行に昇段級条件が入力されていません。\n少なくとも1つの条件を入力してください。`);
-          e.preventDefault();
-          if (inputs.length > 0) inputs[0].focus();
-          return; // 最初の空行で止める
+          hasEmptyRow = true;
         }
+      });
+      if (hasEmptyRow) {
+        event.preventDefault();
+        alert("昇段級条件が入力されていない項目があります");
       }
     });
-  })();
+  });
 </script>
-
+{% endblock %}
