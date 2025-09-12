@@ -4552,22 +4552,29 @@ def login():
                 g.current_club = guessed.id
                 g.current_club_obj = guessed
 
-        # 3) 決定した target_club でパスワード検証
-        if (
-            target_club
-            and username == target_club.id
-            and target_club.admin_password_hash
-            and check_password_hash(target_club.admin_password_hash, password)
-        ):
-            session["logged_in"] = True
-            session["login_user"] = username
-            session["club_id"] = target_club.id
-            target_club.last_login_at = datetime.utcnow()
-            db.session.commit()
-            flash("ログインしました。", "success")
-            return redirect(url_for("index"))
-        else:
-            flash("IDまたはパスワードが違います。", "error")
+        # 3) 決定した target_club の状態とパスワードを検証
+        if target_club and username == target_club.id:
+            # 状態チェック（設計メモ準拠）
+            if getattr(target_club, "status", "active") == "suspended":
+                flash("現在システムオーナーによりシステム利用を停止されています。", "error")
+                return render_template("login.html")
+            if getattr(target_club, "status", "active") == "deleted":
+                # 削除は「存在しない」扱い
+                flash("IDまたはパスワードが違います。", "error")
+                return render_template("login.html")
+
+            # パスワード検証
+            if target_club.admin_password_hash and check_password_hash(target_club.admin_password_hash, password):
+                session["logged_in"] = True
+                session["login_user"] = username
+                session["club_id"] = target_club.id
+                target_club.last_login_at = datetime.utcnow()
+                db.session.commit()
+                flash("ログインしました。", "success")
+                return redirect(url_for("index"))
+
+        # 到達したら認証失敗
+        flash("IDまたはパスワードが違います。", "error")
 
     return render_template("login.html")
 
@@ -5264,9 +5271,45 @@ def owner_clubs_restore(club_id):
 @app.post("/owner/clubs/<club_id>/purge")
 def owner_clubs_purge(club_id):
     club = Club.query.get_or_404(club_id)
-    db.session.delete(club)
-    db.session.commit()
+
+    try:
+        # --- 子テーブル（member / match に依存）---
+        MatchMemo.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        MatchResult.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        InitialAssessmentResult.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        GradeHistory.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        ActivityOutsideRecord.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        PromotionCounterReset.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        BlindCount.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+
+        # --- match 系（子を消した後に本体）---
+        MatchCardState.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        Match.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+
+        # --- 参加者・設定・各種マスタ ---
+        TodayParticipant.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        Setting.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        DefaultCardCount.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        PromotionRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        HandicapRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        Strength.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+
+        # --- member（最後に会員）---
+        Member.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+
+        # --- club本体 ---
+        db.session.delete(club)
+
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"完全削除に失敗しました: {e}", "error")
+        return redirect(url_for("owner_clubs_index"))
+
+    # 監査ログは証跡として保持（必要ならここも削除する実装に変更可）
     _audit("purge", club_id)
+
     flash("完全削除しました。", "success")
     return redirect(url_for("owner_clubs_index"))
 

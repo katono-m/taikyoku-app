@@ -108,8 +108,8 @@
                       <span class="badge">{{ c.status or '-' }}</span>
                     {% endif %}
                   </td>
-                  <td>{{ (c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '-') }}</td>
-                  <td>{{ (c.last_login_at.strftime('%Y-%m-%d %H:%M') if c.last_login_at else '-') }}</td>
+                  <td>{{ format_utc_naive_to_local_display(c.created_at) }}</td>
+                  <td>{{ format_utc_naive_to_local_display(c.last_login_at) }}</td>
                   <td style="white-space: normal;">{{ c.memo or '' }}</td>
                   <td>
                     <div class="actions">
@@ -172,8 +172,8 @@
                   <td>{{ c.id }}</td>
                   <td>{{ c.name }}</td>
                   <td><span class="badge deleted">deleted</span></td>
-                  <td>{{ (c.created_at.strftime('%Y-%m-%d %H:%M') if c.created_at else '-') }}</td>
-                  <td>{{ (c.last_login_at.strftime('%Y-%m-%d %H:%M') if c.last_login_at else '-') }}</td>
+                  <td>{{ format_utc_naive_to_local_display(c.created_at) }}</td>
+                  <td>{{ format_utc_naive_to_local_display(c.last_login_at) }}</td>
                   <td style="white-space: normal;">{{ c.memo or '' }}</td>
                   <td>
                     <div class="actions">
