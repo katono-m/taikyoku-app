@@ -918,15 +918,18 @@ def set_handicap_rules():
         pass
 
     # 差は0〜15で固定（各フィールドに20文字上限のバリデーションを付与）
-    from wtforms.validators import Length, Optional
+    from wtforms.validators import Length, DataRequired
     for diff in range(0, 16):
         setattr(
             DynamicHandicapForm,
             f'diff_{diff}',
             StringField(
                 f'{diff}段（級）差',
-                validators=[Optional(), Length(max=20, message='20文字以内で入力してください')],
-                render_kw={'maxlength': 20}
+                validators=[
+                    DataRequired(message='このフィールドに入力してください'),
+                    Length(max=20, message='20文字以内で入力してください')
+                ],
+                render_kw={'required': True, 'maxlength': 20}
             )
         )
 
