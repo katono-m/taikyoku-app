@@ -5561,5 +5561,10 @@ def public_member_by_token(token):
                            start=start, end=end,
                            public_results_token=token)
 
+# --- 説明書ページ ---
+@app.route("/manual")
+def manual():
+    return render_template("manual.html")
+
 if __name__ == '__main__':
     app.run(debug=True)
