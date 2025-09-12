@@ -63,8 +63,15 @@
       {% for field in form if field.name != 'csrf_token' %}
       <tr>
         <td>{{ field.label }}</td>
-        <td>{{ field(size=20, maxlength=20) }}</td>
+        <td>{{ field(size=20, maxlength=20, required=True) }}</td>
       </tr>
+      {% if loop.last %}
+      <tr>
+        <td colspan="2" style="padding-top: 6px; color:#444; font-size: 0.95rem;">
+          ※16段（級）差以上の場合は、15段（級）差に入力した駒落ちが表示されます。
+        </td>
+      </tr>
+      {% endif %}
       {% endfor %}
     </table>
 
