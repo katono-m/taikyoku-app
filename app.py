@@ -2442,6 +2442,57 @@ def save_match_result():
         result2 = data.get("result2", "") or ""
         handicap = data.get("handicap", "")
 
+        # --- 二重記録対策（30秒以内の完全重複をスキップ） ---------------------
+        from sqlalchemy import or_, and_
+        now_utc = datetime.utcnow()
+        window_start = now_utc - timedelta(seconds=30)
+
+        # 同一カード由来の二重送信で、p1/p2 の並びが同じ想定。
+        # 念のため逆順ケースも考慮。
+        recent_matches = (Match.query
+            .filter(Match.club_id == g.current_club)
+            .filter(Match.ended_at >= window_start)
+            .filter(or_(
+                and_(Match.player1_id == p1_id, Match.player2_id == p2_id),
+                and_(Match.player1_id == p2_id, Match.player2_id == p1_id),
+            ))
+            .order_by(Match.ended_at.desc())
+            .all())
+
+        def _results_equal(m: Match) -> bool:
+            # この対局の2本の結果を取得して、プレイヤーIDと結果の対応で一致判定
+            rs = {r.player_id: r.result for r in m.results}  # player_id -> "○/●/△/◇/◆"
+            r1 = rs.get(p1_id, None)
+            r2 = rs.get(p2_id, None)
+            # 同じ向き（p1→p2）で一致 or 逆向き（p2→p1）で一致、のいずれか
+            same = (r1 == result1 and r2 == result2)
+            rev  = (rs.get(p2_id) == result1 and rs.get(p1_id) == result2)
+            # 種別と駒落ちも一致させる
+            return (m.match_type == match_type and (m.handicap or "") == (handicap or "")) and (same or rev)
+
+        for m in recent_matches:
+            # 完全に一致するものがあればスキップ（成功扱いで返す）
+            if _results_equal(m):
+                # 画面のカードはリセットしたいので、既存のカードも初期化して返す
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                card = MatchCardState.query.filter_by(date=today_str, card_index=card_index).first()
+                if card:
+                    card.match_type = "認定戦"
+                    card.p1_id = ""
+                    card.p2_id = ""
+                    card.status = "pending"
+                    card.info_html = ""
+                    card.original_html1 = ""
+                    card.original_html2 = ""
+                    db.session.commit()
+
+                return jsonify({
+                    "success": True,
+                    "skipped": True,
+                    "message": "同一の対局結果が30秒以内に既に記録されているため、重複保存をスキップしました。"
+                })
+        # ----------------------------------------------------------------------
+
         # 対局時点の棋力（フロントから渡す想定。なければ空文字）
         grade_at_time1 = data.get("grade_at_time1", "") or ""
         grade_at_time2 = data.get("grade_at_time2", "") or ""
