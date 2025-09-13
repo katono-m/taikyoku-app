@@ -1172,7 +1172,7 @@ async function actuallySaveMatch(index, payload) { // 対局結果を保存す�
 // ✅ 二重送信ガード：同じカード index の保存を同時に走らせない
 const submittingMatches = new Set();
 
-// 🔄 修正：endMatch を更新
+// 🔄 修正：endMatch を更新（昇段級処理と保存処理を関数「内」に収める）
 async function endMatch(index) {
   // --- 二重送信ガード（最初にチェック） ---
   if (submittingMatches.has(index)) {
@@ -1224,6 +1224,7 @@ async function endMatch(index) {
     p2_opponent_grade: participant1?.grade || ""
   };
 
+  // 指導対局はモーダルに委ねる（この場でロック解除して終了）
   if (matchType === "指導") {
     showShidoModal(index, payload);
     submittingMatches.delete(index); // モーダルに処理を委ねる
@@ -1238,86 +1239,82 @@ async function endMatch(index) {
   let promoteHandled = false;
 
   try {
-    // 以降の処理（保存など）は既存のまま
-    // （実装の都合でこの関数の末尾までそのまま動きます）
+    // --- 昇段級：関数の外に出ていた処理を中に戻す ---
+    for (const winner of winners) {
+      const participant = getParticipantDataById(winner.id);
+      if (!participant || participant.grade === "未認定") continue;
+
+      // 相手情報から「次の勝ちが0.5勝か」を判定
+      const opponentId = (winner.slot === "player1") ? id2 : id1;
+      const opponent = getParticipantDataById(opponentId);
+      const nextWinIsHalf =
+        (matchType === "初回認定") &&
+        (participant.grade !== "未認定") &&
+        (opponent?.grade === "未認定");
+
+      const checkRes = await fetch("/check_promotion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id: winner.id,
+          next_win_half: nextWinIsHalf
+        })
+      });
+
+      const result = await checkRes.json();
+      if (result?.success && result.promote && result.next_grade) {
+        const reasonText = result.reason ? `条件「${result.reason}」` : "昇段（級）条件";
+        const confirmed = confirm(`${participant.name} は ${reasonText} を満たしました。\n${result.next_grade} に昇段（級）させますか？`);
+        if (confirmed) {
+          const res2 = await fetch("/api/promote_player", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              participant_id: winner.id,
+              new_grade: result.next_grade,
+              reason: result.reason || ""
+            })
+          });
+          const pr = await res2.json();
+
+          if (pr && pr.success) {
+            const target = allParticipants.find(p => p.id.toString() === winner.id.toString());
+            if (target) {
+              target.grade = result.next_grade;
+              if (window.strengthOrderMap) {
+                target.grade_order = window.strengthOrderMap[result.next_grade] ?? -1;
+              }
+            }
+            // 対局カードの「対局前棋力」も更新
+            try {
+              const cardEl2 = document.getElementById(`match-card-${index}`);
+              if (cardEl2) {
+                if (winner.slot === "player1") {
+                  cardEl2.dataset.gradeAtTime1 = result.next_grade;
+                } else {
+                  cardEl2.dataset.gradeAtTime2 = result.next_grade;
+                }
+              }
+            } catch (e) {
+              console.warn("gradeAtTime の更新に失敗:", e);
+            }
+            await reloadParticipants();
+            alert("昇段級処理を完了しました。");
+          } else {
+            alert("昇段級に失敗しました：" + (pr?.message || ""));
+          }
+          promoteHandled = true;
+        }
+      }
+    }
+
+    // --- 保存処理：これも関数の中に置く ---
+    await actuallySaveMatch(index, payload);
+
   } finally {
     // 何があってもロック解除
     submittingMatches.delete(index);
   }
-}
-
-  for (const winner of winners) {
-    const participant = getParticipantDataById(winner.id);
-    if (!participant || participant.grade === "未認定") continue;
-
-    // 相手情報から「次の勝ちが0.5勝か」を判定（勝敗の集計はサーバ側に任せる）
-    const opponentId = (winner.slot === "player1") ? id2 : id1;
-    const opponent = getParticipantDataById(opponentId);
-    const nextWinIsHalf =
-      (matchType === "初回認定") &&
-      (participant.grade !== "未認定") &&
-      (opponent?.grade === "未認定");
-
-    const checkRes = await fetch("/check_promotion", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        player_id: winner.id,
-        next_win_half: nextWinIsHalf
-      })
-    });
-
-    const result = await checkRes.json();
-    if (result?.success && result.promote && result.next_grade) {
-      const reasonText = result.reason ? `条件「${result.reason}」` : "昇段（級）条件";
-      const confirmMsg = `${participant.name} は ${reasonText} を満たしました。\n${result.next_grade} に昇段（級）させますか？`;
-      const confirmed = confirm(confirmMsg);
-      if (confirmed) {
-        const res2 = await fetch("/api/promote_player", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            participant_id: winner.id,
-            new_grade: result.next_grade,
-            reason: result.reason || ""   // サーバが返せない場合のフォールバック
-          })
-        });
-        const pr = await res2.json();
-
-        if (pr && pr.success) {
-          const target = allParticipants.find(p => p.id.toString() === winner.id.toString());
-          if (target) {
-            target.grade = result.next_grade;
-            if (window.strengthOrderMap) {
-              target.grade_order = window.strengthOrderMap[result.next_grade] ?? -1;
-            }
-          }
-
-          // ★ 対局カード（このカード）の「対局前棋力」も最新にしておく
-          try {
-            const cardEl = document.getElementById(`match-card-${index}`);
-            if (cardEl) {
-              if (winner.slot === "player1") {
-                cardEl.dataset.gradeAtTime1 = result.next_grade;
-              } else {
-                cardEl.dataset.gradeAtTime2 = result.next_grade;
-              }
-            }
-          } catch (e) {
-            console.warn("gradeAtTime の更新に失敗:", e);
-          }
-
-          await reloadParticipants();   // ← 次の自動駒落ち判定に新棋力を使う
-          alert("昇段級処理を完了しました。");
-        } else {
-          alert("昇段級に失敗しました：" + (pr?.message || ""));
-        }
-        promoteHandled = true;
-      }
-    }
-  }
-
-  await actuallySaveMatch(index, payload);
 }
 
 function showShodanModal(index) {
