@@ -2614,8 +2614,11 @@ def check_promotion():
     # ended_at 相当の時刻で並べ替え（r,m の m.ended_at / counted_from を見る）
     pairs = sorted(
         (blind_pairs + pairs),
-        # m.id（実対局はDBのID、ブラインドは後述で擬似IDを付与）で安定化
-        key=lambda rm: ((rm[1].ended_at or datetime.min), getattr(rm[1], "id", 0))
+        # Blind: order_index を優先、なければ id をタイブレークに使う
+        key=lambda rm: (
+            (rm[1].ended_at or datetime.min),
+            getattr(rm[1], "order_index", getattr(rm[1], "id", 0))
+        )
     )
 
     NORMALIZE_SYMBOL_MAP = {"〇": "○"}  # 全角の丸数字と混同しやすい U+3007→U+25CB
