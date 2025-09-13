@@ -56,10 +56,10 @@
 </head>
 <body>
   <div class="card">
-    <h1>ログイン</h1>
     <p class="sub">
       <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ロゴ" class="login-logo">
     </p>
+    <h1 style="margin-top: 0.75rem;">ログイン</h1>
 
     <!-- フラッシュメッセージ表示 -->
     {% with messages = get_flashed_messages(with_categories=True) %}
