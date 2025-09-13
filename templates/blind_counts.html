@@ -40,20 +40,22 @@
           </a>
         </td>
         <td style="text-align:left; padding:6px 8px;">{{ m.grade }}</td>
-        <td style="text-align:left; padding:6px 8px; display:flex; gap:8px; flex-wrap:wrap;">
-          <!-- 個人の勝敗カウント編集へ遷移（新規個人画面） -->
-          <a
-            class="btn"
-            href="{{ url_for('blind_counts_member', member_id=m.id) }}"
-            style="text-decoration:none;"
-          >勝敗カウント編集</a>
+        <td style="text-align:left; padding:6px 8px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <!-- 個人の勝敗カウント編集へ遷移（新規個人画面） -->
+            <a
+              class="btn"
+              href="{{ url_for('blind_counts_member', member_id=m.id) }}"
+              style="text-decoration:none;"
+            >勝敗カウント編集</a>
 
-          <!-- 既存のリセット編集（実装位置は変更なし：仕様どおり） -->
-          <a
-            class="btn btn-outline"
-            href="{{ url_for('counter_resets_edit', member_id=m.id) }}"
-            style="text-decoration:none;"
-          >勝敗カウントリセット編集</a>
+            <!-- 既存のリセット編集（実装位置は変更なし：仕様どおり） -->
+            <a
+              class="btn btn-outline"
+              href="{{ url_for('counter_resets_edit', member_id=m.id) }}"
+              style="text-decoration:none;"
+            >勝敗カウントリセット編集</a>
+          </div>
         </td>
       </tr>
       {% endfor %}
