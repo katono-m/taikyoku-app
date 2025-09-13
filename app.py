@@ -195,6 +195,7 @@ app.jinja_env.globals.update(
     to_jst_date_str=to_jst_date_str,
     to_jst_datetime_local_str=to_jst_datetime_local_str,  # 追加：datetime-local用
     format_utc_naive_to_local_display=format_utc_naive_to_local_display,
+    format_utc_naive_to_local_input=format_utc_naive_to_local_input,  # ← これを追加
     jst_today_str=jst_today_str,
 )
 
@@ -4924,7 +4925,6 @@ def blind_counts_index():
 
 @app.get("/blind_counts/<member_id>")
 def blind_counts_member(member_id):
-    ...
     # ★ クラブ境界を必ず掛ける
     member = (Member.query
               .filter(Member.left_at.is_(None),
