@@ -103,7 +103,11 @@
 
   <!-- 追加：上部バー（ログインID表示＋ログアウト） -->
   <div class="topbar">
-    <div class="brand">対局管理ポータル【こまゆい】</div>
+    <div class="brand">
+      <img src="{{ url_for('static', filename='img/logo.png') }}"
+           alt="こまゆいロゴ"
+           style="height:28px; width:auto; display:block;">
+    </div>
     <div class="userbox">
       ログイン中：<strong>{{ session.get('login_user') }}</strong>
       <a class="logout" href="{{ url_for('logout') }}">ログアウト</a>

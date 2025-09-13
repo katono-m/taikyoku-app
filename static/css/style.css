@@ -235,3 +235,17 @@ header {
   box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.12) inset;
   transition: background-color 0.2s ease;
 }
+
+/* manual.html のロゴ */
+.hero h1 .logo {
+  height: 40px;          /* ロゴ高さ（調整可） */
+  vertical-align: middle;
+  margin-right: 6px;     /* ロゴと文字の間隔 */
+}
+
+.login-logo {
+  height: 40px;        /* ロゴ高さ（調整可） */
+  width: auto;
+  display: inline-block;
+  margin-top: 0.25rem;
+}

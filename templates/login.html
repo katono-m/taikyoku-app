@@ -57,7 +57,9 @@
 <body>
   <div class="card">
     <h1>ログイン</h1>
-    <p class="sub">対局管理システム</p>
+    <p class="sub">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ロゴ" class="login-logo">
+    </p>
 
     <!-- フラッシュメッセージ表示 -->
     {% with messages = get_flashed_messages(with_categories=True) %}
