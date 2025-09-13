@@ -72,12 +72,41 @@
     .alert-success { border-color: #cce5cc; background: #f3fbf3; color: #2c662d; }
     .alert-warning { border-color: #ffeeba; background: #fffaf0; color: #7a5a00; }
     .alert-error   { border-color: #f5c6cb; background: #fff5f5; color: #842029; }
-    .alert-info    { border-color: #b8daff; background: #f0f8ff; color: #0c5460; }    
+    .alert-info    { border-color: #b8daff; background: #f0f8ff; color: #0c5460; }  
+    
+        /* ▼ ブランド（ロゴ＋タイトル） */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;     /* クリック領域はリンクだが下線は消す */
+      color: inherit;            /* 文字色は継承 */
+    }
+    .brand-logo {
+      display: block;
+      height: 28px;              /* ロゴの見た目高さ。迷ったら28pxでOK */
+      width: auto;               /* 縦横比は保つ */
+      object-fit: contain;       /* はみ出し防止 */
+    }
+    .brand-title {
+      font-size: 1.25rem;        /* 既存の header h1 と同じサイズ感 */
+      color: #2c3e50;
+      line-height: 1;
+      white-space: nowrap;       /* 折り返し防止（必要な場合） */
+    }
+
+    /* 既存の header h1 は使わなくなるので見た目齟齬を避ける（任意）
+       ※そのままでも動作しますが、念のため。 */
+    header h1 { display: none; }
+
   </style>
 </head>
 <body>
   <header>
-    <h1>{{ club.name if club else "クラブ名未設定" }} 対局管理システム</h1>
+    <a href="{{ url_for('index') }}" class="brand" aria-label="トップへ">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ロゴ" class="brand-logo">
+      <span class="brand-title">{{ club.name if club else "クラブ名未設定" }} 対局管理システム</span>
+    </a>
     <nav>
       <a href="{{ url_for('index') }}" class="btn-nav">トップ</a>
       <a href="{{ url_for('settings_index') }}" class="btn-nav">設定</a>
