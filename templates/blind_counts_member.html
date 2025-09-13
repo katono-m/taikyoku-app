@@ -39,8 +39,8 @@
     <div id="sym-wrap" style="display:flex; gap:8px; flex-wrap:wrap;">
       {% set syms = symbols or [] %}
       {% for s in syms %}
-        <div class="sym-row" style="display:flex; flex-direction:column; align-items:center;">
-            <select class="bc-sym" style="min-width:4.5rem; padding:4px;">
+        <div class="sym-row" style="display:flex; flex-direction:column; align-items:center; width:70px;">
+            <select class="bc-sym" style="width:100%; box-sizing:border-box; padding:4px; text-align:center;">
             {% set ORDER = ['○','●','△','◇','◆'] %}
             {% for opt in ORDER if opt in allowed_symbols %}
                 <option value="{{ opt }}" {% if s == opt %}selected{% endif %}>{{ opt }}</option>
