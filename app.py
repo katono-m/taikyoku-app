@@ -5006,11 +5006,14 @@ def api_blind_counts_save():
     if not m or m.left_at is not None:
         return jsonify(success=False, message="会員が見つからないか退会済みです"), 404
 
-    # 日時
+    # 日時（JST入力 → UTC naiveで保存）
     try:
-        # datetime-local 文字列を想定
-        from datetime import datetime
-        dt = datetime.fromisoformat(counted_from)
+        from datetime import datetime, timezone, timedelta
+        JST = timezone(timedelta(hours=9))
+        # 画面の datetime-local（JST前提）を aware にしてから UTC に変換し、naive化
+        local_dt = datetime.fromisoformat(counted_from)              # naive（JSTつき想定）
+        aware_jst = local_dt.replace(tzinfo=JST)                     # JST aware
+        dt = aware_jst.astimezone(timezone.utc).replace(tzinfo=None) # UTC naive
     except Exception:
         return jsonify(success=False, message="日時の形式が不正です"), 400
 
