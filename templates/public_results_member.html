@@ -121,7 +121,7 @@
             {% if rows and rows|length>0 %}
               {% for r in rows %}
               <tr>
-                <td>{{ to_jst_date_str(r.ended_at) if r.ended_at else "-" }}</td>
+                <td>{{ to_jst_date_str(r.match.ended_at) if r.match and r.match.ended_at else "-" }}</td>
                 <td>{{ r.opponent_name }}</td>
                 <td>{{ r.opponent_grade }}</td>
                 <td>{{ r.handicap }}</td>
