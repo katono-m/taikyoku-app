@@ -5379,6 +5379,7 @@ def owner_clubs_purge(club_id):
         PromotionRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
         HandicapRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
         Strength.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+        OwnerAuditLog.query.filter_by(club_id=club_id).delete(synchronize_session=False)
 
         # --- member（最後に会員）---
         Member.query.filter_by(club_id=club_id).delete(synchronize_session=False)
