@@ -5596,6 +5596,7 @@ def public_results_index_token(token):
 @app.get("/public/m/<token>")
 def public_member_by_token(token):
     from models import Member, MatchResult, GradeHistory
+    from types import SimpleNamespace
 
     member = Member.query.filter_by(qr_token=token).first()
     if not member:
@@ -5606,24 +5607,47 @@ def public_member_by_token(token):
     start = request.args.get("start")
     end = request.args.get("end")
 
-    # 成績抽出
-    q = MatchResult.query.filter_by(player_id=member.id).order_by(MatchResult.id.desc())
-    rows = [{
-        "date": r.match.ended_at.date().isoformat() if r.match and r.match.ended_at else "-",
-        "opponent_name": r.opponent_name,
-        "opponent_grade": r.opponent_grade,
-        "handicap": r.match.handicap if r.match else "",
-        "result": r.result,
-        "note": r.note or ""
-    } for r in q]
+    # 成績抽出：古い順（ended_at昇順、同一時刻ならid昇順）
+    q = (
+        db.session.query(MatchResult)
+        .filter(MatchResult.player_id == member.id)
+        .join(Match, MatchResult.match_id == Match.id)
+        .order_by(Match.ended_at.asc(), Match.id.asc())
+    )
 
-    # 勝数・勝率計算
+    rows = []
+    for r in q.all():
+        match = r.match  # relationship
+        ended_at = match.ended_at if (match and match.ended_at) else None
+        handicap = match.handicap if match else ""
+
+        note_text = (r.note or "").strip()
+        rows.append(SimpleNamespace(
+            ended_at=ended_at,                 # ← テンプレ想定
+            opponent_name=r.opponent_name or "",
+            opponent_grade=r.opponent_grade or "",
+            handicap=handicap or "",
+            result=r.result or "",
+            note=note_text
+        ))
+
+    # 勝数・勝率計算（既存ロジック踏襲）
     games = len(rows)
-    wins = sum(1 if r["result"] == "〇" else 0.5 if r["result"] == "◇" else 0 for r in rows)
+    wins = 0.0
+    for row in rows:
+        if row.result == "〇":       # 既存の記号仕様を尊重
+            wins += 1.0
+        elif row.result == "◇":
+            wins += 0.5
     winrate = (wins / games) if games > 0 else 0
 
     # 昇段級履歴
-    histories = GradeHistory.query.filter_by(member_id=member.id).order_by(GradeHistory.changed_at.desc()).all()
+    histories = (
+        GradeHistory.query
+        .filter_by(member_id=member.id)
+        .order_by(GradeHistory.changed_at.desc())
+        .all()
+    )
 
     return render_template("public_results_member.html",
                            member=member, rows=rows,
