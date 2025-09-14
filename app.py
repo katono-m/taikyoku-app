@@ -5627,7 +5627,7 @@ def manual():
 def export_today_participants_csv():
     """
     JSTの「今日」に受付済みの参加者をCSVで出力する。
-    並び順: member_id（数字のみは数値昇順、その他は文字列昇順）
+    並び順: member_code（数字のみは数値昇順、その他は文字列昇順）
     列: date, member_code, name, kana, grade, member_type
     """
     today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
@@ -5644,20 +5644,19 @@ def export_today_participants_csv():
             TodayParticipant.club_id == g.current_club,
             TodayParticipant.date == today_jst,
         )
-        # DB依存のORDER BYは使わず、Python側で一括整列（SQLite/PG両対応）
+        # DB側の order_by は使わず、Python 側で自然順ソートする
     )
 
     rows = q.all()
 
-    # 🔽 member_id（= tp.participant_id）でカスタムソート
-    def id_sort_key(tp_obj):
-        mid = (tp_obj.participant_id or "")
-        # 数字だけ → (0, 数値) / それ以外 → (1, 文字列)
-        if mid.isdigit():
-            return (0, int(mid))
-        return (1, mid)
+    # --- member_code を「数字優先の自然順」でソート ---
+    def code_sort_key(code: str, fallback: str):
+        s = (code or fallback or "")
+        if s.isdigit():
+            return (0, int(s), "")   # 数字グループ → 数値昇順
+        return (1, s)                # 非数字グループ → 文字列昇順
 
-    rows.sort(key=lambda r: id_sort_key(r[0]))  # r = (tp, member_code)
+    rows.sort(key=lambda r: code_sort_key(r[1], r[0].participant_id))  # r=(tp, member_code)
 
     output = io.StringIO()
     w = csv.writer(output)
