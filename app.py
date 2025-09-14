@@ -2302,19 +2302,21 @@ def results_member_export_csv(member_id):
     # 表示用行 — 画面の rows と同様に構築（活動外メモも含める） :contentReference[oaicite:10]{index=10}
     rows = []
     for r, match in pairs:
-        ended_date = to_jst_date_str(match.ended_at) if match.ended_at else "-"
         note_text = (r.note or "").strip()
         if not note_text and getattr(r, "promoted", False):
             note_text = "昇段級あり"
 
         rows.append({
-            "date": ended_date,
+            # テンプレ：to_jst_date_str(r.ended_at) で表示
+            "ended_at": (match.ended_at if match and match.ended_at else None),
+            # 互換用に残したい場合のみ（未使用なら削ってOK）
+            "date": (to_jst_date_str(match.ended_at) if match and match.ended_at else "-"),
             "opponent_name": r.opponent_name or "",
             "opponent_grade": r.opponent_grade or "",
-            "handicap": match.handicap or "",
-            "result": r.result or "",
+            "handicap": (match.handicap or ""),
+            "result": (r.result or ""),
             "note": note_text,
-            "_sort_dt": match.ended_at or datetime.min
+            "_sort_dt": (match.ended_at or datetime.min)
         })
 
     # 活動外メモを行として追加（/results/<member_id> と同様） :contentReference[oaicite:11]{index=11}
@@ -5596,7 +5598,6 @@ def public_results_index_token(token):
 @app.get("/public/m/<token>")
 def public_member_by_token(token):
     from models import Member, MatchResult, GradeHistory
-    from types import SimpleNamespace
 
     member = Member.query.filter_by(qr_token=token).first()
     if not member:
@@ -5607,47 +5608,28 @@ def public_member_by_token(token):
     start = request.args.get("start")
     end = request.args.get("end")
 
-    # 成績抽出：古い順（ended_at昇順、同一時刻ならid昇順）
-    q = (
-        db.session.query(MatchResult)
-        .filter(MatchResult.player_id == member.id)
-        .join(Match, MatchResult.match_id == Match.id)
-        .order_by(Match.ended_at.asc(), Match.id.asc())
-    )
-
+    # 成績抽出（UTC naiveの ended_at をそのまま渡し、テンプレ側で JST 変換）
+    q = MatchResult.query.filter_by(player_id=member.id).order_by(MatchResult.id.desc())
     rows = []
-    for r in q.all():
-        match = r.match  # relationship
-        ended_at = match.ended_at if (match and match.ended_at) else None
-        handicap = match.handicap if match else ""
+    for r in q:
+        match = r.match
+        rows.append({
+            # テンプレートで to_jst_date_str(r.ended_at) を使う前提
+            "ended_at": (match.ended_at if match and match.ended_at else None),
+            "opponent_name": r.opponent_name,
+            "opponent_grade": r.opponent_grade,
+            "handicap": (match.handicap if match else ""),
+            "result": r.result,
+            "note": (r.note or "")
+        })
 
-        note_text = (r.note or "").strip()
-        rows.append(SimpleNamespace(
-            ended_at=ended_at,                 # ← テンプレ想定
-            opponent_name=r.opponent_name or "",
-            opponent_grade=r.opponent_grade or "",
-            handicap=handicap or "",
-            result=r.result or "",
-            note=note_text
-        ))
-
-    # 勝数・勝率計算（既存ロジック踏襲）
+    # 勝数・勝率計算
     games = len(rows)
-    wins = 0.0
-    for row in rows:
-        if row.result == "〇":       # 既存の記号仕様を尊重
-            wins += 1.0
-        elif row.result == "◇":
-            wins += 0.5
+    wins = sum(1 if r["result"] == "〇" else 0.5 if r["result"] == "◇" else 0 for r in rows)
     winrate = (wins / games) if games > 0 else 0
 
     # 昇段級履歴
-    histories = (
-        GradeHistory.query
-        .filter_by(member_id=member.id)
-        .order_by(GradeHistory.changed_at.desc())
-        .all()
-    )
+    histories = GradeHistory.query.filter_by(member_id=member.id).order_by(GradeHistory.changed_at.desc()).all()
 
     return render_template("public_results_member.html",
                            member=member, rows=rows,

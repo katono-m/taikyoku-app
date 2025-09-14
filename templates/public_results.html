@@ -25,14 +25,6 @@
       text-align: center;
       margin: 0 0 1rem;
     }
-    form {
-      margin: 0 0 1rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
     .table-container {
       max-height: 520px;
       overflow-y: auto;
@@ -71,19 +63,6 @@
 
   <h2>全会員名簿</h2>
 
-  <!-- 期間フィルタ（残す：将来の拡張や並び替え維持のため） -->
-  <form method="get" action="{{ request.path }}">
-    <div>
-      <label>開始日：</label>
-      <input type="date" name="start" value="{{ start or '' }}">
-    </div>
-    <div>
-      <label>終了日：</label>
-      <input type="date" name="end" value="{{ end or '' }}">
-    </div>
-    <button type="submit">表示</button>
-  </form>
-
   <!-- 一覧（公開：会員ID・名前・棋力のみ） -->
   <div class="table-container">
     <table>
@@ -98,7 +77,7 @@
         {% set cur_order = order or 'asc' %}
         {% macro sort_link(label, col) -%}
           {% set next_order = 'desc' if (cur_sort == col and cur_order == 'asc') else 'asc' %}
-          <a href="{{ request.path }}?start={{ start or '' }}&end={{ end or '' }}&sort={{ col }}&order={{ next_order }}">
+          <a href="{{ request.path }}?sort={{ col }}&order={{ next_order }}">
             {{ label }}
             {% if cur_sort == col %}
               {{ '▲' if cur_order == 'asc' else '▼' }}
