@@ -2135,7 +2135,18 @@ def results_export_csv():
             "winrate": winrate,
         })
 
-    # CSV生成（BOM付きUTF-8でExcel想定） — 実装パターンは /grade_history/export と同様 :contentReference[oaicite:6]{index=6}
+    # ▼ 会員ID（display_code = r["id"]）で自然順ソート
+    #    - 数字のみ: 数値昇順（先に並ぶ）
+    #    - 英字等含む: 文字列昇順（数字の後に並ぶ）
+    def _natkey_display_code(code: str):
+        s = (code or "").strip()
+        if s.isdigit():
+            return (0, int(s), s)  # 数字グループ（先頭）・数値キー
+        return (1, None, s)        # 非数字グループ（後方）・文字列キー
+
+    rows = sorted(rows, key=lambda x: _natkey_display_code(x["id"]))
+
+    # CSV生成（BOM付きUTF-8でExcel想定）
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["会員ID", "名前", "現在棋力", "対局数", "勝数", "勝率(%)"])
