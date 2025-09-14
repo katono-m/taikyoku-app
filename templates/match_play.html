@@ -5,6 +5,9 @@
 
 <div style="text-align: center; margin-bottom: 1.5rem;">
   <a href="{{ url_for('match_edit') }}" class="btn">← 参加者編集に戻る</a>
+  <a href="{{ url_for('export_today_participants_csv') }}" class="btn" style="margin-left: 0.75rem;">
+    本日の参加者CSV出力
+  </a>
   <button id="end-all-button" class="btn-danger" style="margin-left: 0.75rem;">
     対局をすべて終了する
   </button>

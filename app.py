@@ -5623,5 +5623,56 @@ def public_member_by_token(token):
 def manual():
     return render_template("manual.html")
 
+# --- 本日の参加者 CSV エクスポート ---
+@app.get("/participants/today/export")
+def export_today_participants_csv():
+    """
+    JSTの「今日」に受付済みの参加者をCSVで出力する。
+    列: date, member_code, name, kana, grade, member_type
+    """
+    from zoneinfo import ZoneInfo
+    today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
+
+    # TodayParticipant と Member をJOINして member_code を取得
+    q = (
+        db.session.query(TodayParticipant, Member.member_code)
+        .join(
+            Member,
+            (Member.id == TodayParticipant.participant_id)
+            & (Member.club_id == g.current_club)
+        )
+        .filter(
+            TodayParticipant.club_id == g.current_club,
+            TodayParticipant.date == today_jst,
+        )
+        .order_by(TodayParticipant.kana)  # よみがな順で出力
+    )
+
+    output = io.StringIO()
+    w = csv.writer(output)
+
+    # ヘッダ
+    w.writerow(["date", "member_code", "name", "kana", "grade", "member_type"])
+
+    for tp, member_code in q.all():
+        display_code = (member_code or tp.participant_id) or ""
+        w.writerow([
+            today_jst,
+            display_code,
+            tp.name or "",
+            tp.kana or "",
+            tp.grade or "",
+            tp.member_type or "",
+        ])
+
+    output.seek(0)
+    bom = "\ufeff"  # Excelでの文字化け防止
+    return send_file(
+        io.BytesIO((bom + output.read()).encode("utf-8")),
+        mimetype="text/csv; charset=utf-8",
+        as_attachment=True,
+        download_name=f"today_participants_{today_jst}.csv",
+    )
+
 if __name__ == '__main__':
     app.run(debug=True)
