@@ -3137,7 +3137,6 @@ def get_today_participants():
 
     if not date:
         # JST の今日に置換
-        from zoneinfo import ZoneInfo
         date = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
 
     # StrengthとのJOINで棋力順を取るため、Memberから取得
@@ -5628,9 +5627,9 @@ def manual():
 def export_today_participants_csv():
     """
     JSTの「今日」に受付済みの参加者をCSVで出力する。
+    並び順: member_id（数字のみは数値昇順、その他は文字列昇順）
     列: date, member_code, name, kana, grade, member_type
     """
-    from zoneinfo import ZoneInfo
     today_jst = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
 
     # TodayParticipant と Member をJOINして member_code を取得
@@ -5645,8 +5644,20 @@ def export_today_participants_csv():
             TodayParticipant.club_id == g.current_club,
             TodayParticipant.date == today_jst,
         )
-        .order_by(TodayParticipant.kana)  # よみがな順で出力
+        # DB依存のORDER BYは使わず、Python側で一括整列（SQLite/PG両対応）
     )
+
+    rows = q.all()
+
+    # 🔽 member_id（= tp.participant_id）でカスタムソート
+    def id_sort_key(tp_obj):
+        mid = (tp_obj.participant_id or "")
+        # 数字だけ → (0, 数値) / それ以外 → (1, 文字列)
+        if mid.isdigit():
+            return (0, int(mid))
+        return (1, mid)
+
+    rows.sort(key=lambda r: id_sort_key(r[0]))  # r = (tp, member_code)
 
     output = io.StringIO()
     w = csv.writer(output)
@@ -5654,7 +5665,7 @@ def export_today_participants_csv():
     # ヘッダ
     w.writerow(["date", "member_code", "name", "kana", "grade", "member_type"])
 
-    for tp, member_code in q.all():
+    for tp, member_code in rows:
         display_code = (member_code or tp.participant_id) or ""
         w.writerow([
             today_jst,
