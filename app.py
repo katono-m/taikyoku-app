@@ -4871,17 +4871,28 @@ def qr_token_urls_csv():
         flash("会員が選択されていません。", "warning")
         return redirect(url_for("qr_select"))
 
-    # 退会者を除外し、QRトークン未発行はスキップ
+    # ▼ 並び替え用の式（数値だけ→先頭、その中は数値昇順／非数値は文字列昇順）
+    is_numeric_flag = case((expr_member_code_is_numeric(), 0), else_=1)
+    num_value       = expr_member_code_numeric_value()
+
+    # 退会者を除外し、QRトークン未発行はスキップしつつ、会員ID順で取得
     targets = (
         Member.query
         .filter(
             Member.id.in_(selected_ids),
             Member.left_at.is_(None),
-            Member.club_id == g.current_club   # ← クラブ境界を強制
+            Member.club_id == g.current_club   # ← クラブ境界
+        )
+        .order_by(
+            is_numeric_flag.asc(),           # 数字コード(0)が先
+            num_value.asc(),                 # 数字だけの中は実数値で昇順
+            Member.member_code.asc(),        # 英字混じりは文字列昇順
+            Member.id.asc()                  # 念のため安定化
         )
         .all()
     )
 
+    # QRトークン未発行は除外
     targets = [m for m in targets if getattr(m, "qr_token", None)]
 
     if not targets:
@@ -4893,12 +4904,10 @@ def qr_token_urls_csv():
     from io import StringIO
     sio = StringIO(newline="")
     writer = csv.writer(sio)
-    # 見出し
     writer.writerow(["会員ID", "名前", "QRトークン", "個人成績URL"])
 
-    # 既存ヘルパでフルURL生成（/public/m/<token>） ← _build_member_public_url を利用
     for m in targets:
-        url = _build_member_public_url(m.qr_token)  # 例: https://example.com/public/m/xxxxx
+        url = _build_member_public_url(m.qr_token)
         display_code = getattr(m, "member_code", None) or m.id
         writer.writerow([display_code, m.name, m.qr_token, url])
 
