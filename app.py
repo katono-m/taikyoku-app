@@ -1658,20 +1658,26 @@ def public_results_index_token_canonical(club_id, token):
             "winrate": winrate,
         })
 
-    # --- 並び替え（既定：member_code の文字列昇順） ---
-    if not sort_key:
-        rows = sorted(rows, key=lambda x: (x.get("member_code") or ""))
+    # --- 並び替え（既定：member_code の“自然順”＝数字は数値として、英字混じりは文字列として） ---
+    def _code_key(row: dict):
+        s = str(row.get("member_code") or "")
+        is_num = s.isdigit()
+        # 数字だけ： (False, 数値, 元文字列)  /  英字混じり： (True, 0, 元文字列)
+        # → 昇順では「数字グループが先」で数値昇順、次に英字などが文字列昇順
+        return (not is_num, int(s) if is_num else 0, s)
+
+    if not sort_key or sort_key == "member_code":
+        rows = sorted(rows, key=_code_key, reverse=(sort_order == "desc"))
     else:
         key_funcs = {
-            "member_code": lambda x: (x.get("member_code") or ""),  # ★追加
-            "id":         lambda x: x["id"],
-            "name":       lambda x: x["name"],
-            "grade":      lambda x: x["grade_order"],
-            "games":      lambda x: x["games"],
-            "wins":       lambda x: x["wins"],
-            "winrate":    lambda x: x["winrate"],
+            "id":       lambda x: x["id"],
+            "name":     lambda x: x["name"],
+            "grade":    lambda x: x["grade_order"],
+            "games":    lambda x: x["games"],
+            "wins":     lambda x: x["wins"],
+            "winrate":  lambda x: x["winrate"],
         }
-        keyfunc = key_funcs.get(sort_key) or (lambda x: (x.get("member_code") or ""))
+        keyfunc = key_funcs.get(sort_key, _code_key)
         rows = sorted(rows, key=keyfunc, reverse=(sort_order == "desc"))
 
     return render_template(
