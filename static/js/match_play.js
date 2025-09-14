@@ -1128,6 +1128,11 @@ function showShidoModal(index, payload) {
   // 「記録する」
   document.getElementById("shido-save").onclick = async () => {
     modal.style.display = "none";
+
+    // ★追加：保存の前に、認定戦と同等の昇段級チェック＆確認→必要なら昇段級API
+    await checkPromotionAndMaybePromote(index, payload);
+
+    // その後に保存
     await actuallySaveMatch(index, payload);
   };
 
@@ -1617,4 +1622,83 @@ function openRepeatWarningModal(modal, nth, cardIndex) {
       modal.dataset.repeatBound = "1";
     }
   });
+}
+
+// ★追加：保存前に昇段級チェック＆確認ポップアップ＆昇段級APIを実行する共通関数
+async function checkPromotionAndMaybePromote(index, payload) {
+  const { player1_id: id1, player2_id: id2, result1, result2 } = payload;
+  const matchType = document.getElementById(`match-type-${index}`)?.value || "";
+
+  // 勝者抽出（○/◇のみ対象）
+  const winners = [];
+  if (result1 === "○" || result1 === "◇") winners.push({ id: id1, slot: "player1" });
+  if (result2 === "○" || result2 === "◇") winners.push({ id: id2, slot: "player2" });
+
+  for (const winner of winners) {
+    const participant = getParticipantDataById(winner.id);
+    if (!participant || participant.grade === "未認定") continue;
+
+    // 相手情報と「次の勝ちが0.5勝か」を判定（初回認定のみ該当）
+    const opponentId = (winner.slot === "player1") ? id2 : id1;
+    const opponent = getParticipantDataById(opponentId);
+    const nextWinIsHalf =
+      (matchType === "初回認定") &&
+      (participant.grade !== "未認定") &&
+      (opponent?.grade === "未認定");
+
+    // サーバに「次の1勝で昇段級か？」を問い合わせ
+    const resp = await fetch("/check_promotion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_id: winner.id,
+        next_win_half: nextWinIsHalf
+      })
+    });
+    const result = await resp.json();
+
+    if (result?.success && result.promote && result.next_grade) {
+      const reasonText = result.reason ? `条件「${result.reason}」` : "昇段（級）条件";
+      const confirmed = confirm(`${participant.name} は ${reasonText} を満たしました。\n${result.next_grade} に昇段（級）させますか？`);
+      if (confirmed) {
+        const res2 = await fetch("/api/promote_player", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            participant_id: winner.id,
+            new_grade: result.next_grade,
+            reason: result.reason || ""
+          })
+        });
+        const pr = await res2.json();
+        if (pr && pr.success) {
+          // 画面上の棋力も更新
+          const target = allParticipants.find(p => p.id.toString() === winner.id.toString());
+          if (target) {
+            target.grade = result.next_grade;
+            if (window.strengthOrderMap) {
+              target.grade_order = window.strengthOrderMap[result.next_grade] ?? -1;
+            }
+          }
+          // 対局カードの「対局前棋力」表示も更新しておく（続く保存でgrade_at_timeは別管理）
+          try {
+            const cardEl2 = document.getElementById(`match-card-${index}`);
+            if (cardEl2) {
+              if (winner.slot === "player1") {
+                cardEl2.dataset.gradeAtTime1 = result.next_grade;
+              } else {
+                cardEl2.dataset.gradeAtTime2 = result.next_grade;
+              }
+            }
+          } catch (e) {
+            console.warn("gradeAtTime の更新に失敗:", e);
+          }
+          await reloadParticipants();
+          alert("昇段級処理を完了しました。");
+        } else {
+          alert("昇段級に失敗しました：" + (pr?.message || ""));
+        }
+      }
+    }
+  }
 }
