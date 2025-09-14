@@ -5379,6 +5379,8 @@ def owner_clubs_purge(club_id):
         PromotionRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
         HandicapRule.query.filter_by(club_id=club_id).delete(synchronize_session=False)
         Strength.query.filter_by(club_id=club_id).delete(synchronize_session=False)
+
+        # ★追加：このクラブの監査ログをFK衝突回避のために削除
         OwnerAuditLog.query.filter_by(club_id=club_id).delete(synchronize_session=False)
 
         # --- member（最後に会員）---
@@ -5394,8 +5396,7 @@ def owner_clubs_purge(club_id):
         flash(f"完全削除に失敗しました: {e}", "error")
         return redirect(url_for("owner_clubs_index"))
 
-    # 監査ログは証跡として保持（必要ならここも削除する実装に変更可）
-    _audit("purge", club_id)
+    # （完全削除後はクラブ行が存在しないため、監査ログへの追記は行わない）
 
     flash("完全削除しました。", "success")
     return redirect(url_for("owner_clubs_index"))
