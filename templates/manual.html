@@ -77,9 +77,7 @@
   }
 
   /* ===== Main ===== */
-  .main {
-    min-width: 0;
-  }
+  .main { min-width: 0; }
   .hero {
     background: linear-gradient(180deg, #fff, #f9fbff);
     border: 1px solid var(--line);
@@ -93,10 +91,7 @@
     font-size: clamp(1.35rem, 1.15rem + 1vw, 1.9rem);
     letter-spacing: .02em;
   }
-  .hero p {
-    margin: 6px 0 0;
-    color: var(--sub);
-  }
+  .hero p { margin: 6px 0 0; color: var(--sub); }
 
   /* ===== Section / Accordion ===== */
   section.manual-section {
@@ -115,16 +110,9 @@
     background: #ffffff;
     border-bottom: 1px solid var(--line);
   }
-  section.manual-section h2 {
-    font-size: 1.05rem;
-    margin: 0;
-  }
-  details.block {
-    border-top: 1px dashed var(--line);
-  }
-  details.block[open] summary {
-    background: #fbfdff;
-  }
+  section.manual-section h2 { font-size: 1.05rem; margin: 0; }
+  details.block { border-top: 1px dashed var(--line); }
+  details.block[open] summary { background: #fbfdff; }
   summary {
     cursor: pointer;
     list-style: none;
@@ -154,10 +142,7 @@
     border-radius: 10px;
     margin: 8px 0;
   }
-  .list {
-    margin: 6px 0 0 1rem;
-    padding: 0;
-  }
+  .list { margin: 6px 0 0 1rem; padding: 0; }
   .list li { margin: 2px 0; }
   .pill {
     display: inline-block;
@@ -169,29 +154,14 @@
     font-size: .85rem;
     margin-left: 6px;
   }
-  .anchor {
-    text-decoration: none;
-    color: var(--brand);
-  }
+  .anchor { text-decoration: none; color: var(--brand); }
   .mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   .muted { color: var(--sub); }
-
-  .inline-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  @media (max-width: 720px) {
-    .inline-grid { grid-template-columns: 1fr; }
-  }
-
-  .backtop {
-    text-align: right;
-    padding: 8px 14px 12px;
-    border-top: 1px solid var(--line);
-  }
+  .inline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .inline-grid { grid-template-columns: 1fr; } }
+  .backtop { text-align: right; padding: 8px 14px 12px; border-top: 1px solid var(--line); }
   .backtop a { color: var(--brand); text-decoration: none; }
 </style>
 
@@ -210,14 +180,14 @@
       <a href="#sec-results">5. 成績管理画面</a>
       <a href="#sec-qr">6. QRコード生成画面</a>
     </nav>
-    <small class="muted">「KOMAYUI」ご利用の前に、<span class="mono">設定 → 棋力/昇段級/駒落ち/カード数</span> の順で初期設定をおすすめします。</small>
+    <small class="muted">ご利用前に、<span class="mono">設定 → 棋力 / 昇段級基準 / 駒落ち / デフォルト対局カード数</span> の順で初期設定を行ってください。</small>
   </aside>
 
   <!-- ===== MAIN ===== -->
   <main class="main">
     <div class="hero">
       <h1>KOMAYUI｜利用ガイド</h1>
-      <p class="muted">システムの主な画面と操作手順を、折りたたみ式のマニュアルでまとめました。必要なところだけ開いてご利用ください。</p>
+      <p class="muted">本ガイドは Word 版の説明書の文言に忠実に構成し、現行の画面構成（目次・折りたたみ）で読みやすく再編集しています。</p>
     </div>
 
     <!-- 1. トップ画面 -->
@@ -228,14 +198,18 @@
       </header>
 
       <details class="block" open>
-        <summary>できること</summary>
+        <summary>トップ画面でできること</summary>
         <div class="content">
+          <p>トップ画面では、以下の項目画面に移動することが出来ます。また、クラブのパスワード変更も可能です。</p>
+          <div class="note">パスワードは半角英数字と「.」「_」「%」「+」「-」「@」が使用可能です。8文字以上でご設定ください。</div>
           <ul class="list">
-            <li>各画面へ移動：<span class="mono">設定 / 名簿管理 / 対局 / 成績管理 / QRコード生成</span></li>
-            <li>クラブのパスワード変更（半角英数字 + <span class="mono">._%+-@</span> / 8文字以上）</li>
+            <li>設定画面</li>
+            <li>名簿管理画面</li>
+            <li>対局画面</li>
+            <li>成績管理画面</li>
+            <li>QRコード生成</li>
           </ul>
-          <div class="note">※ クラブIDは変更できません。</div>
-        </div>   
+        </div>
       </details>
     </section>
 
@@ -243,51 +217,47 @@
     <section class="manual-section" id="sec-settings">
       <header>
         <h2>2. 設定画面</h2>
-        <span class="pill">初期セットアップ</span>
+        <span class="pill">基本設定</span>
       </header>
+
+      <details class="block" open>
+        <summary>設定画面の概要</summary>
+        <div class="content">
+          <p>設定画面では、「KOMAYUI」をあなたのクラブ・教室等で使用する上での基本的な事項を設定できます。</p>
+        </div>
+      </details>
 
       <details class="block" open>
         <summary>棋力の設定</summary>
         <div class="content">
-          <ul class="list">
-            <li>最初に「棋力の件数」を半角数字で入力（例：<span class="mono">15級〜三段</span>なら18）。</li>
-            <li>「未認定」は件数に含めない。</li>
-            <li>「次へ」ボタンを押下し、表示された件数分の棋力入力へ。</li>
-            <li>1番目 = 一番低い棋力から順に入力。</li>
-            <li>「保存」ボタン押下で確定（設定した棋力は後工程の昇段級・駒落ちと連動）。</li>
-          </ul>
+          <p>はじめに「棋力の件数」を入力します。例えば、最下位の棋力が15級、最上位の棋力が六段であれば、15級から六段までの数を数えて入力します。</p>
+          <div class="note">「未認定」は件数に含めません。</div>
+          <p>件数を保存後、その件数分の入力欄が表示されます。1番目には最も低い棋力を入力し、順次入力して保存します。設定した棋力は後の昇段級・駒落ち設定と連動します。</p>
         </div>
       </details>
 
-      <details class="block">
+      <details class="block" open>
         <summary>昇段級基準の設定</summary>
         <div class="content">
-          <ul class="list">
-            <li>各棋力への昇段級条件を設定。</li>
-            <li>例）<span class="mono">10級 → 9級</span> を <span class="mono">5連勝</span> もしくは <span class="mono">8勝2敗</span>。</li>
-            <li>必要に応じて「勝敗②」（例：<span class="mono">10勝3敗</span>）も追加可能。</li>
-          </ul>
+          <p>昇段級基準とは、例えば「15級から10級までは3連勝」「9級から5級は5連勝または8勝2敗」といった昇段級条件を入力する画面です。</p>
+          <p>棋力の下位→上位の行ごとに「連勝」「勝敗①（例：8勝2敗）」「勝敗②（例：10勝3敗）」の3系統へ入力します。空欄の条件は用いません。</p>
+          <div class="note">いずれかの行で全て空欄のまま保存した場合は「昇段級条件が入力されていない項目があります」と警告されます。</div>
+          <p>「8勝2敗」は「8回勝つまでに2敗まで許容」という意味であり、8勝1敗や8勝0敗でも条件を満たします（「2回負けなければならない」ではありません）。</p>
         </div>
       </details>
 
-      <details class="block">
+      <details class="block" open>
         <summary>駒落ちの設定</summary>
         <div class="content">
-          <ul class="list">
-            <li>棋力差 0〜15 段（級）差の駒落ちを入力。</li>
-            <li>16差以上は <span class="mono">15差の設定</span> が適用。</li>
-            <li>対局進行フェーズで自動表示（手動変更も可）。</li>
-          </ul>
+          <p>同格（0差）は「平手」、1差は「平手（下位先手）」、2差は「香落ち」など、段（級）差ごとの駒落ちを入力します。1〜15差それぞれをご入力ください。</p>
+          <div class="note">16段（級）差以上の場合は、15段（級）差に入力した駒落ちが適用されます。</div>
         </div>
       </details>
 
-      <details class="block">
-        <summary>対局カード数の設定</summary>
+      <details class="block" open>
+        <summary>デフォルト対局カード数の設定</summary>
         <div class="content">
-          <ul class="list">
-            <li>対局進行フェーズのカードのデフォルト枚数を設定。</li>
-            <li>カードの枚数は進行中に増減可能。</li>
-          </ul>
+          <p>対局進行フェーズにおいて使用する対局カードのデフォルト枚数を設定できます。目安として、実際に設置する盤駒セットの数を入力することを推奨します。対局カードは対局進行フェーズで手動増減も可能です。</p>
         </div>
       </details>
 
@@ -298,29 +268,25 @@
     <section class="manual-section" id="sec-members">
       <header>
         <h2>3. 名簿管理画面</h2>
-        <span class="pill">会員情報管理</span>
+        <span class="pill">会員情報</span>
       </header>
 
       <details class="block" open>
-        <summary>会員種類と表示</summary>
+        <summary>名簿管理の概要</summary>
         <div class="content">
-          <ul class="list">
-            <li><b>正会員：</b>成績管理画面の一覧対象。</li>
-            <li><b>臨時会員：</b>一時参加・見学など。成績一覧には表示されない。</li>
-            <li><b>指導員：</b>対局進行フェーズで多面指し可。</li>
-            <li><b>スタッフ：</b>対局は可能だが多面指し不可。</li>
-          </ul>
+          <p>名簿管理画面では、会員ID・会員種類・名前・読み仮名・棋力を管理します。名簿の並び替え（会員ID順、よみがな順、棋力順、会員種類順）や、編集・退会処理も行えます。</p>
         </div>
       </details>
 
       <details class="block">
-        <summary>新規会員を追加</summary>
+        <summary>会員ID・会員種類・名前・読み仮名・棋力</summary>
         <div class="content">
           <ul class="list">
-            <li><b>入力項目：</b>会員ID / 名前 / よみがな / 棋力 / 会員種類</li>
-            <li><b>会員ID：</b>半角英数字 + <span class="mono">._%+-@</span>（クラブ内で同一のIDは設定不可）</li>
-            <li><b>よみがな：</b>ひらがなのみ</li>
-            <li><b>棋力・会員種類：</b>プルダウンで入力</li>
+            <li><b>会員ID：</b>半角英数字（メールで使用できる記号 ._%+-@ を含む）でクラブ内一意。</li>
+            <li><b>会員種類：</b>「正会員」「臨時会員」「指導員」「スタッフ」から選択。</li>
+            <li><b>名前：</b>日本語可。</li>
+            <li><b>読み仮名：</b>全角ひらがな。</li>
+            <li><b>棋力：</b>設定画面で定めた棋力から選択。昇段級時は自動更新されます。</li>
           </ul>
         </div>
       </details>
@@ -328,36 +294,23 @@
       <details class="block">
         <summary>CSVインポート / エクスポート</summary>
         <div class="content">
-          <b>インポート項目</b>
+          <p>CSV インポートでは、<span class="mono">member_code / name / kana / grade / member_type</span> を取り込みます。既存の <span class="mono">member_code</span> は上書き更新されます。</p>
           <ul class="list">
-            <li><span class="mono">member_code</span> / <span class="mono">name</span> / <span class="mono">kana</span> / <span class="mono">grade</span> / <span class="mono">member_type</span></li>
+            <li><b>member_code：</b>半角英数字 + <span class="mono">._%+-@</span>／20文字以内。違反行は取り込みしません。</li>
+            <li><b>name：</b>20文字超は取り込みしません。</li>
+            <li><b>kana：</b>ひらがなのみ（長音「ー」可）/ 50文字超は取り込みしません。</li>
+            <li><b>grade：</b>マスタに無い値または空欄は「未認定」に置換えられます。</li>
+            <li><b>member_type：</b>不明・空欄は「正会員」に置換えられます。</li>
+            <li><b>必須：</b><span class="mono">member_code / name / kana</span> のいずれかが空欄ならその行は取り込みしません。</li>
+            <li><b>エクスポート：</b>退会者は含まれません。</li>
           </ul>
-          <b>主な留意点</b>
-          <ul class="list">
-            <li><b>member_code（会員ID）：</b>半角英数字 + <span class="mono">._%+-@</span>／20文字以内。違反行は取り込みしない。</li>
-            <li><b>name（名前）：</b>日本語可 / 20文字超は取り込みしない。</li>
-            <li><b>kana（よみがな）：</b>ひらがなのみ（長音「ー」可）/ 50文字超は取り込みしない。</li>
-            <li><b>grade（棋力）：</b>マスタに無い値または空欄 → 「未認定」に置換。</li>
-            <li><b>member_type（会員種類）：</b>不明・空欄 → 「正会員」に置換。</li>
-            <li>member_code / name / kana のいずれか空欄 → その行は取り込みしない。</li>
-            <li>既存の member_code が含まれる行は上書き更新。</li>
-          </ul>
-          <b>エクスポート</b>
-          <ul class="list">
-            <li>エクスポートには退会者は含まれない。</li>
-          </ul>              
         </div>
       </details>
 
       <details class="block">
-        <summary>編集 / 退会 / 退会者</summary>
+        <summary>編集 / 退会（論理削除） / 退会者の扱い</summary>
         <div class="content">
-          <ul class="list">
-            <li>行ごとの「編集」で会員情報を更新。</li>
-            <li>「退会」で退会処理。退会者リストへ移動（完全削除は不可）。</li>
-            <li>退会者は「復旧」で現役に戻せる。</li>
-            <li>各項目名クリックで並び替え可能。</li>
-          </ul>
+          <p>行ごとの「編集」で会員情報を更新できます。「退会」で退会処理を行うと退会者リストへ移動します（完全削除は不可）。退会者は「復旧」で現役に戻せます。</p>
         </div>
       </details>
 
@@ -368,52 +321,45 @@
     <section class="manual-section" id="sec-match">
       <header>
         <h2>4. 対局画面</h2>
-        <span class="pill">受付 → 対局進行</span>
+        <span class="pill">参加者編集 → 対局進行</span>
       </header>
 
       <details class="block" open>
         <summary>（1）参加者編集フェーズ</summary>
         <div class="content">
+          <p>画面左側が全会員名簿、右側が「本日の参加者」です。</p>
           <ul class="list">
-            <li>左：全会員名簿、右：本日の参加者。</li>
-            <li>受付方法：
+            <li>受付方法（2通り）：
               <ul class="list">
-                <li>QRコード受付（生成済みQRをリーダーで読取）。</li>
-                <li>チェックボックス選択 → 「選択した会員を参加受付」。</li>
+                <li>QRコード受付（会員カードのQRをリーダーで読み取り）</li>
+                <li>チェックボックス選択 → 「参加受付」</li>
               </ul>
             </li>
-            <li>「取消」で受付を取り消し可能。</li>
-            <li>各項目名クリックで並び替え可能。</li>
-            <li>「対局進行へ」で進行フェーズへ。進行中でも戻って追加/削除できる。</li>
+            <li>受付取消が可能。各項目名クリックで並び替え。</li>
+            <li>「対局進行へ」で進行フェーズへ（進行中に戻って追加/参加取消も可）。</li>
           </ul>
         </div>
       </details>
 
       <details class="block">
-        <summary>（2）対局進行フェーズ</summary>
+        <summary>（2）対局進行フェーズ（共通）</summary>
         <div class="content">
-          <ul class="list">
-            <li>左：本日の参加者、右：対局カード群。</li>
-            <li>参加者2名をドラッグしてカードに配置 → 「対局開始」ボタン押下。</li>
-            <li>終了時に結果を入力 → 「対局終了」で記録。</li>
-          </ul>
+          <p>左に本日の参加者、右に対局カード群が並びます。参加者2名をドラッグしてカードに配置し、「対局開始」。終了時に結果を入力して「対局終了」で記録します。</p>
+          <div class="note">同一組合せの2回目以降は警告表示。「勝てば昇段（級）」の事前表示あり。</div>
+          <p>カードの操作：カード削除 / ＋カード追加 / 対局開始 / 手合い解除 / 対局終了</p>
+        </div>
+      </details>
 
-          <h4 style="margin:.5rem 0;">対局種別</h4>
+      <details class="block">
+        <summary>対局種別</summary>
+        <div class="content">
           <ul class="list">
             <li><b>棋力認定戦：</b>勝敗を保存。条件達成で昇段級通知。</li>
             <li><b>指導対局：</b>勝敗の保存有無を選択可。「昇段級」ボタンで任意昇段級。</li>
             <li><b>フリー対局：</b>記録は残さない。</li>
-            <li><b>初回認定戦：</b>未認定が片方にいる対局。終了時「棋力認定」ボタンで任意に認定。未認定者に勝利＝0.5勝（記号「◇」）、負け＝ノーカウント（「◆」）。</li>
+            <li><b>初回認定戦：</b>未認定が片方にいる対局。終了時「棋力認定」ボタンで任意認定。未認定者の相手が勝った場合は「◇」（0.5勝）、負けは「◆」（ノーカウント）。</li>
           </ul>
-
-          <h4 style="margin:.5rem 0;">カードの操作</h4>
-          <ul class="list">
-            <li>カード削除 / ＋カード追加 / 対局開始 / 手合い解除 / 対局終了</li>
-            <li>同一組合せの2回目以降があるときはアラート表示。</li>
-            <li>「勝てば昇段（級）」の事前表示あり。</li>
-          </ul>
-
-          <div class="note">「対局をすべて終了する」で本日の参加者やカード枚数を初期化できます。</div>
+          <p>駒落ち表示：棋力認定戦は棋力差から自動表示（手動変更可）／指導対局は「指導」／初回認定戦は「認定」。</p>
         </div>
       </details>
 
@@ -424,65 +370,56 @@
     <section class="manual-section" id="sec-results">
       <header>
         <h2>5. 成績管理画面</h2>
-        <span class="pill">閲覧 / 編集 / 追加 / 削除</span>
+        <span class="pill">閲覧・編集・追加・削除</span>
       </header>
 
       <details class="block" open>
         <summary>成績一覧と出力</summary>
         <div class="content">
-          <ul class="list">
-            <li>現役会員の成績一覧を表示。</li>
-            <li>集計期間の指定表示 / CSV出力に対応。</li>
-            <li>項目名クリックで並び替え。</li>
-          </ul>
+          <p>現役会員の成績一覧を表示します。集計期間の指定表示や CSV 出力に対応し、項目名クリックで並び替えができます。</p>
+        </div>
+      </details>
+
+      <details class="block">
+        <summary>個人成績表</summary>
+        <div class="content">
+          <p>成績一覧表の名前をクリックすると個人成績表が表示されます。成績期間を指定でき、CSV 出力も可能です。「昇段級履歴」と、「日付・相手名・相手棋力・駒落ち等・勝敗・備考」が表示されます。</p>
         </div>
       </details>
 
       <details class="block">
         <summary>活動外成績入力</summary>
         <div class="content">
-          <ul class="list">
-            <li>クラブ外での昇段級を記録（対象者・適用日・備考・新棋力）。</li>
-            <li>適用日をもって勝敗カウントを自動リセット。</li>
-          </ul>
+          <p>クラブ外での昇段級を記録します（対象者・適用日・備考・新棋力）。適用日により勝敗カウントをリセットするかを選択できます。</p>
         </div>
       </details>
 
       <details class="block">
         <summary>昇段級履歴</summary>
         <div class="content">
-          <ul class="list">
-            <li>正会員の昇段級履歴を閲覧/編集/取消。</li>
-            <li>集計期間の指定表示 / CSV出力に対応。</li>
-            <li>取消すると履歴レコードは削除（会員の現在棋力は自動で戻らないため、名簿から手動変更）。</li>
-          </ul>
+          <p>昇段級の履歴を閲覧・編集・取消できます。取消時は履歴レコードを削除します（会員の現在棋力は自動では戻らないため、必要に応じて名簿管理画面から変更してください）。</p>
         </div>
       </details>
 
       <details class="block">
         <summary>対局の編集</summary>
         <div class="content">
-          <ul class="list">
-            <li>対局一覧の閲覧/編集/追加/削除。</li>
-            <li>集計期間の指定表示 / CSV出力に対応。</li>
-            <li>対局編集または追加時に、昇段級に伴う勝敗カウントのリセット可否を選択可能。</li>
-          </ul>
+          <p>対局一覧の閲覧・編集・追加・削除ができます。対局の追加・編集時に、昇段級に伴う勝敗カウントをリセットするかを選択できます。</p>
         </div>
       </details>
 
       <details class="block">
-        <summary>勝敗カウント編集 / 退会者</summary>
+        <summary>勝敗カウント編集 / 勝敗カウントリセット編集 / 退会者</summary>
         <div class="content">
           <ul class="list">
-            <li><b>勝敗カウント編集：</b>「ブラインド勝敗」を編集。</li>
-            <li><b>リセット編集：</b>昇段級や活動外入力等に伴うリセット履歴を編集/追加/削除。</li>
-            <li><b>退会者：</b>退会者の成績を閲覧。</li>
-            <div class="note">
-              <b>ブラインド勝敗とは？</b><br>
-              成績表に掲載されない勝敗カウント（ブラインド勝敗）を指します。<br>
-              ブラインド勝敗は、例えば「KOMAYUI」を利用開始する時点で、「2連勝中」、「4勝1敗」、「6勝2敗」の成績がある会員がいた場合、「KOMAYUI」利用開始前の日付で「〇〇●〇〇●〇〇」と入力することで、その勝敗カウントがシステム利用後の勝敗カウントに加算されるという仕組みです。
-            </div>            
+            <li><b>勝敗カウント編集：</b>ブラインド勝敗（システム掲載対象外の事前勝敗列）を編集します。</li>
+            <li><b>勝敗カウントリセット編集：</b>昇段級・活動外成績入力・対局編集（昇段級あり）等でリセットされた履歴を編集・追加・削除できます。</li>
+            <li><b>退会者：</b>退会者の成績を閲覧できます。</li>
           </ul>
+          <div class="note">
+            <b>ブラインド勝敗とは？</b><br>
+            KOMAYUI利用開始前に、例えば「2連勝中」「4勝1敗」などの勝敗カウントがある場合、その分をKOMAYUI利用開始前の日付で「〇〇●〇〇」のように記録しておき、以後の昇段級カウントに加算する仕組みです。
+          </div>
         </div>
       </details>
 
@@ -493,20 +430,17 @@
     <section class="manual-section" id="sec-qr">
       <header>
         <h2>6. QRコード生成画面</h2>
-        <span class="pill">受付用QRコード / 個人成績公開URL</span>
+        <span class="pill">受付用QR / 個人成績公開URL</span>
       </header>
 
       <details class="block" open>
-        <summary>QRの発行 / 再生成 / トークンURL</summary>
+        <summary>QR の発行・再生成・トークンURL出力</summary>
         <div class="content">
-          <ul class="list">
-            <li>受付用のQRコードを発行・再生成。</li>
-            <li>「QRトークンURLをCSV出力」で、会員ごとの個人成績等公開URLを出力。</li>
-          </ul>
+          <p>参加受付で使用する QR コードデータの発行・再生成ができます。また、「QRトークンURLをCSV出力」では、各会員が自身の成績をログインなしで閲覧するための URL を出力できます。</p>
           <div class="note">
-            <b>QRトークンURLとは？</b><br>
-            会員ごとに割り振る複雑な文字列（トークン）付きURL。ログインなしで「個人成績」「全会員名簿」を閲覧可能。<br>
-            万一、URLが漏洩した場合等は「トークン再生成」で無効化できます（既存のQRは無効になる点に注意）。
+            <b>QRトークンURLについて</b><br>
+            会員ごとに発行される複雑なトークン文字列を付した URL です。会員は自分の個人成績と全会員名簿を閲覧できます。<br>
+            セキュリティ上、URL の漏洩には十分ご注意ください。漏洩等があった場合は「トークン再生成」で新しい QR コードと URL を再生成できます（既存の QR 、URL は無効になります）。
           </div>
         </div>
       </details>
