@@ -436,24 +436,26 @@ async function drop(ev, slot, cardIndex) {
   const rowId = draggedElement.id || "";
   const id = rowId.startsWith("participant-") ? rowId.replace("participant-", "") : rowId;
 
-  // 表示用データはセルから取得（1列目は member_code に変更済み）
+  // 表示用データ：まずは最新キャッシュから取得（なければフォールバックでセル）
   const tds = draggedElement.querySelectorAll('td');
   if (tds.length < 5) {
     alert("データが正しく取得できませんでした。");
     return;
   }
-  const memberCode = tds[0].innerText.trim();  // ← 参考（必要ならUI表示に使える）
-  const name = tds[1].innerText.trim();
-  const kana = tds[2].innerText.trim();
-  const grade = tds[3].innerText.trim();
-  const memberType = tds[4].innerText.trim();
+
+  const p = getParticipantDataById(id); // ← 最新の参加者データ
+  const memberCode = (p?.member_code ?? tds[0].innerText.trim());
+  const name       = (p?.name        ?? tds[1].innerText.trim());
+  const kana       = (p?.kana        ?? tds[2].innerText.trim());
+  const grade      = (p?.grade       ?? tds[3].innerText.trim());
+  const memberType = (p?.member_type ?? tds[4].innerText.trim());
 
   // 🔸 originalHtml を保存（キャンセル復元用）
   const originalHtml = draggedElement.innerHTML;
   slotElement.dataset.originalHtml = originalHtml;
   slotElement.dataset.participantRowId = draggedId; 
 
-  // 🔸 表示変更
+  // 🔸 表示変更（常に“いまの等級”を反映）
   slotElement.innerHTML = `
     <div><strong>${name}（${kana}）${grade}・${memberType}</strong></div>
     <button type="button" onclick="removeParticipant('${slot}', ${cardIndex}, '${draggedId}')">戻す</button>
@@ -476,7 +478,7 @@ async function drop(ev, slot, cardIndex) {
       // 「手合い解除」が選ばれた場合はここで終了
       return;
     }
-    showMatchInfo(cardIndex);
+    await showMatchInfo(cardIndex);
   }
 }
 
@@ -531,7 +533,12 @@ function calcHandicap(order1, order2, matchType) {
 
 // 両者揃ったときの駒落ち計算・勝てば昇段級メッセージの表示
 // カード種別による駒落ち固定や◇（0.5勝）表示の条件もここ
-function showMatchInfo(cardIndex) { 
+async function showMatchInfo(cardIndex) { 
+  // ★追加：直前の昇級を即時に反映するため最新の参加者一覧を再取得
+  if (typeof reloadParticipants === "function") {
+    await reloadParticipants();
+  }
+
   const matchType = document.getElementById(`match-type-${cardIndex}`).value;
 
   const p1 = document.getElementById(`card${cardIndex}-player1`);
