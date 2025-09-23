@@ -201,20 +201,35 @@ function renderMatchCards(cards) {
 
     if (p1) {
       p1.dataset.participantId = card.p1_id || "";
-      p1.dataset.originalHtml = card.original_html1 || "";
-      if (card.original_html1) {
-        p1.innerHTML = card.original_html1;
-        p1.dataset.assigned = "true";
+      p1.removeAttribute("data-original-html");   // ← もう使わない
+      if (card.p1_id) {
+        const p1data = getParticipantDataById(card.p1_id);
+        if (p1data) {
+          const nameLink = `<a href="/member/${p1data.id}/recent" target="_blank" class="person-link">${p1data.name}</a>`;
+          p1.innerHTML = `${nameLink}（${p1data.kana}）${p1data.grade}・${p1data.member_type}`;
+          p1.dataset.assigned = "true";
+        } else {
+          p1.innerHTML = "対局者1";
+          p1.dataset.assigned = "false";
+        }
       }
     }
     if (p2) {
       p2.dataset.participantId = card.p2_id || "";
-      p2.dataset.originalHtml = card.original_html2 || "";
-      if (card.original_html2) {
-        p2.innerHTML = card.original_html2;
-        p2.dataset.assigned = "true";
+      p2.removeAttribute("data-original-html");   // ← もう使わない
+      if (card.p2_id) {
+        const p2data = getParticipantDataById(card.p2_id);
+        if (p2data) {
+          const nameLink = `<a href="/member/${p2data.id}/recent" target="_blank" class="person-link">${p2data.name}</a>`;
+          p2.innerHTML = `${nameLink}（${p2data.kana}）${p2data.grade}・${p2data.member_type}`;
+          p2.dataset.assigned = "true";
+        } else {
+          p2.innerHTML = "対局者2";
+          p2.dataset.assigned = "false";
+        }
       }
     }
+
     // 🔁 対局中のカードなら表示を復元
     if (card.status === "ongoing" && p1 && p2) {
       // 参加者情報を取得して名前等を抽出
@@ -473,6 +488,13 @@ async function drop(ev, slot, cardIndex) {
 
   slotElement.dataset.assigned = "true";
   slotElement.dataset.participantId = id;
+
+  // ★追加：新たに割り当てたので「開始時点棋力」の古い値をクリアしておく
+  const cardEl = document.getElementById(`match-card-${cardIndex}`);
+  if (cardEl) {
+    delete cardEl.dataset.gradeAtTime1;
+    delete cardEl.dataset.gradeAtTime2;
+  }
 
   // 🔸 指導員以外は参加者リストから非表示に
   if (memberType !== "指導員") {
@@ -1313,21 +1335,12 @@ async function endMatch(index) {
                 target.grade_order = window.strengthOrderMap[result.next_grade] ?? -1;
               }
             }
-            // 対局カードの「対局前棋力」も更新
-            try {
-              const cardEl2 = document.getElementById(`match-card-${index}`);
-              if (cardEl2) {
-                if (winner.slot === "player1") {
-                  cardEl2.dataset.gradeAtTime1 = result.next_grade;
-                } else {
-                  cardEl2.dataset.gradeAtTime2 = result.next_grade;
-                }
-              }
-            } catch (e) {
-              console.warn("gradeAtTime の更新に失敗:", e);
-            }
+            // 🔥 削除：gradeAtTime の上書きロジック
+            // （対局開始時点の棋力は固定値のまま保持する）
+
             await reloadParticipants();
             alert("昇段級処理を完了しました。");
+
           } else {
             alert("昇段級に失敗しました：" + (pr?.message || ""));
           }
