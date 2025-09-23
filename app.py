@@ -3887,13 +3887,18 @@ def results_edit_export_csv():
     writer.writerow(["日時", "対局者1", "対局者2", "駒落ち", "勝敗1", "勝敗2", "備考"])
 
     for m in matches:
-        r1, r2 = (m.results + [None, None])[:2]
+        # ★順序非依存に修正：player_idで確実に対応付ける
+        res_map = {res.player_id: res for res in (m.results or [])}
+        r1 = res_map.get(m.player1_id)
+        r2 = res_map.get(m.player2_id)
+
         p1 = Member.query.get(m.player1_id)
         p2 = Member.query.get(m.player2_id)
         p1_name = p1.name if p1 else (r2.opponent_name if r2 else "")
         p2_name = p2.name if p2 else (r1.opponent_name if r1 else "")
         ended_disp = format_utc_naive_to_local_display(m.ended_at)
         note = " / ".join(filter(None, [(r1.note if r1 else ""), (r2.note if r2 else "")]))
+
         writer.writerow([
             ended_disp,
             p1_name,
