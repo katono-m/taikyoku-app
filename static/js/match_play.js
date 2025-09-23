@@ -436,19 +436,26 @@ async function drop(ev, slot, cardIndex) {
   const rowId = draggedElement.id || "";
   const id = rowId.startsWith("participant-") ? rowId.replace("participant-", "") : rowId;
 
-  // 表示用データ：まずは最新キャッシュから取得（なければフォールバックでセル）
+  // ★可能なら、ドロップ直前に参加者一覧を再取得してキャッシュを最新化
+  if (typeof reloadParticipants === "function") {
+    try { await reloadParticipants(); } catch (e) { console.warn(e); }
+  }
+
+  // 表示用データ：必ず「画面に見えているセル（最新表示）」を優先し、
+  // もしセルが取れない場合のみキャッシュにフォールバックする
   const tds = draggedElement.querySelectorAll('td');
   if (tds.length < 5) {
     alert("データが正しく取得できませんでした。");
     return;
   }
 
-  const p = getParticipantDataById(id); // ← 最新の参加者データ
-  const memberCode = (p?.member_code ?? tds[0].innerText.trim());
-  const name       = (p?.name        ?? tds[1].innerText.trim());
-  const kana       = (p?.kana        ?? tds[2].innerText.trim());
-  const grade      = (p?.grade       ?? tds[3].innerText.trim());
-  const memberType = (p?.member_type ?? tds[4].innerText.trim());
+  const p = getParticipantDataById(id); // 取得できれば後方支援に使う
+
+  const memberCode = (tds[0].innerText.trim()) || (p?.member_code ?? "");
+  const name       = (tds[1].innerText.trim()) || (p?.name        ?? "");
+  const kana       = (tds[2].innerText.trim()) || (p?.kana        ?? "");
+  const grade      = (tds[3].innerText.trim()) || (p?.grade       ?? "");
+  const memberType = (tds[4].innerText.trim()) || (p?.member_type ?? "");
 
   // 🔸 originalHtml を保存（キャンセル復元用）
   const originalHtml = draggedElement.innerHTML;
@@ -469,15 +476,12 @@ async function drop(ev, slot, cardIndex) {
     draggedElement.style.display = "none";
   }
 
-  // 🔸 両者揃ったら「本日◯回目」チェック → 必要ならモーダル → 続行可なら showMatchInfo
+  // 🔸 両者揃ったら重複対局チェック → 続行可なら最新データで showMatchInfo
   const p1 = document.getElementById(`card${cardIndex}-player1`);
   const p2 = document.getElementById(`card${cardIndex}-player2`);
   if (p1.dataset.assigned === "true" && p2.dataset.assigned === "true") {
     const proceed = await checkRepeatAndMaybeWarn(cardIndex);
-    if (!proceed) {
-      // 「手合い解除」が選ばれた場合はここで終了
-      return;
-    }
+    if (!proceed) return;
     await showMatchInfo(cardIndex);
   }
 }
