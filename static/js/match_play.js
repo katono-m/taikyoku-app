@@ -1491,8 +1491,14 @@ function showShodanModal(index) {
 
 async function reloadParticipants() {
   const today = window.today || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const participants = await fetchTodayParticipants(today);
-  
+
+  // 直近の並び順を維持（未設定ならデフォルトは 'grade' / 'asc' を想定）
+  const sortKey = (window.sortKey && typeof window.sortKey === "string") ? window.sortKey : "grade";
+  const sortOrder = (window.sortOrder === "desc" ? "desc" : "asc");
+
+  // 並び順パラメータを明示的に渡す（← ここがポイント）
+  const participants = await fetchTodayParticipants(today, sortKey, sortOrder);
+
   // 🔽 対局カードをスキャンして再構築
   assignedParticipantIds.clear();
 
@@ -1513,6 +1519,7 @@ async function reloadParticipants() {
     addIfNonInstructor(p1?.dataset.participantId);
     addIfNonInstructor(p2?.dataset.participantId);
   });
+
   renderParticipantTable(participants);
 }
 
