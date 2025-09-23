@@ -436,11 +436,6 @@ async function drop(ev, slot, cardIndex) {
   const rowId = draggedElement.id || "";
   const id = rowId.startsWith("participant-") ? rowId.replace("participant-", "") : rowId;
 
-  // ★可能なら、ドロップ直前に参加者一覧を再取得してキャッシュを最新化
-  if (typeof reloadParticipants === "function") {
-    try { await reloadParticipants(); } catch (e) { console.warn(e); }
-  }  
-
   // 表示用データ：まずは最新キャッシュから取得（なければフォールバックでセル）
   const tds = draggedElement.querySelectorAll('td');
   if (tds.length < 5) {
