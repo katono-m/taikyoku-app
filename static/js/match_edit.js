@@ -61,6 +61,22 @@ document.addEventListener("DOMContentLoaded", () => {
       syncLeftMembers(data);
     });
 
+  async function reloadParticipants() {
+    const res = await fetch(`/api/participants?date=${today}&sort=${sort}&order=${order}&_=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    const list = await res.json();
+    sortParticipants(list);
+
+    while (participantsTable.firstChild) {
+      participantsTable.removeChild(participantsTable.firstChild);
+    }
+    list.forEach(p => appendParticipantRow(p));
+    syncLeftMembers(list);
+    toggleProceedButton();
+  }
+
   // 「参加受付」ボタン押下時
   addBtn.addEventListener("click", () => {
     const checkedBoxes = document.querySelectorAll(".member-check:checked");
@@ -96,8 +112,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // 送信済みチェックは念のため全解除
         document.querySelectorAll(".member-check:checked").forEach(cb => cb.checked = false);
 
-        data.participants.forEach(p => appendParticipantRow(p));
-        toggleProceedButton();
+        // 右リストは必ず再取得→並べ替え→全描画で一貫性を担保
+        reloadParticipants();
       } else {
         alert("登録に失敗しました");
       }
@@ -228,7 +244,17 @@ function sortParticipants(participants) {
   const codeKey = (code) => {
     const s = String(code ?? "");
     const isNum = /^[0-9]+$/.test(s);
-    return [!isNum, isNum ? parseInt(s, 10) : 0, s];
+    return [!isNum ? 1 : 0, isNum ? parseInt(s, 10) : 0, s]; // 0=数値,1=英字混じり
+  };
+
+  const cmpTuple = (ka, kb) => {
+    for (let i = 0; i < Math.max(ka.length, kb.length); i++) {
+      const a = ka[i] ?? 0;
+      const b = kb[i] ?? 0;
+      if (a < b) return -1;
+      if (a > b) return 1;
+    }
+    return 0;
   };
 
   participants.sort((a, b) => {
@@ -245,9 +271,8 @@ function sortParticipants(participants) {
     if (sortKey === 'member_code') {
       const ka = codeKey(a.member_code);
       const kb = codeKey(b.member_code);
-      if (ka < kb) return (order === 'asc') ? -1 : 1;
-      if (ka > kb) return (order === 'asc') ? 1 : -1;
-      return 0;
+      const base = cmpTuple(ka, kb);
+      return (order === 'asc') ? base : -base;
     }
 
     // name / kana などは日本語ロケール比較
@@ -256,4 +281,5 @@ function sortParticipants(participants) {
     const cmp = va.localeCompare(vb, "ja");
     return order === 'asc' ? cmp : -cmp;
   });
+
 }
