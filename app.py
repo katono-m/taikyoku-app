@@ -1332,7 +1332,7 @@ def match_play():
         return redirect(url_for("match_edit"))
 
     # 並び替え設定
-    sort_key = request.args.get('sort', 'member_code')
+    sort_key = request.args.get('sort', 'grade')
     sort_order = request.args.get('order', 'asc')
 
     # Strength を別名で定義（JOIN で使うため）
