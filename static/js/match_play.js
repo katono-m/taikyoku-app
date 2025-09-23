@@ -436,19 +436,29 @@ async function drop(ev, slot, cardIndex) {
   const rowId = draggedElement.id || "";
   const id = rowId.startsWith("participant-") ? rowId.replace("participant-", "") : rowId;
 
-  // 表示用データ：まずは最新キャッシュから取得（なければフォールバックでセル）
+  // 表示用データ：テーブル（DOM）の表示値を常に優先し、必要に応じてキャッシュへ同期
   const tds = draggedElement.querySelectorAll('td');
   if (tds.length < 5) {
     alert("データが正しく取得できませんでした。");
     return;
   }
 
-  const p = getParticipantDataById(id); // ← 最新の参加者データ
-  const memberCode = (p?.member_code ?? tds[0].innerText.trim());
-  const name       = (p?.name        ?? tds[1].innerText.trim());
-  const kana       = (p?.kana        ?? tds[2].innerText.trim());
-  const grade      = (p?.grade       ?? tds[3].innerText.trim());
-  const memberType = (p?.member_type ?? tds[4].innerText.trim());
+  // DOM優先（テーブルの表示＝最新状態）
+  const memberCode = (tds[0].innerText || "").trim();
+  const name       = (tds[1].innerText || "").trim();
+  const kana       = (tds[2].innerText || "").trim();
+  const grade      = (tds[3].innerText || "").trim();
+  const memberType = (tds[4].innerText || "").trim();
+
+  // 参考：キャッシュとズレていた場合に合わせておく（任意だがズレ抑制に有効）
+  const p = getParticipantDataById(id);
+  if (p) {
+    p.member_code = memberCode;
+    p.name        = name;
+    p.kana        = kana;
+    p.grade       = grade;
+    p.member_type = memberType;
+  }
 
   // 🔸 originalHtml を保存（キャンセル復元用）
   const originalHtml = draggedElement.innerHTML;
