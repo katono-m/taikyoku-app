@@ -587,9 +587,17 @@ function showMatchInfo(cardIndex) {
     return;
   }
 
-  const order1 = participant1.grade_order ?? 999;
-  const order2 = participant2.grade_order ?? 999;
+  // window.strengthOrderMap を優先し、なければ participant.grade_order を使う
+  const toOrder = (p) => {
+    if (!p) return 999;
+    if (window.strengthOrderMap && p.grade in window.strengthOrderMap) {
+      return window.strengthOrderMap[p.grade];
+    }
+    return (typeof p.grade_order === "number") ? p.grade_order : 999;
+  };
 
+  const order1 = toOrder(participant1);
+  const order2 = toOrder(participant2);
   let handicap = calcHandicap(order1, order2, matchType);
 
   // 🔽 駒落ちセレクト：初回認定戦のみ固定、それ以外は変更可
@@ -1160,12 +1168,10 @@ async function actuallySaveMatch(index, payload) { // 対局結果を保存す�
   const data = await res.json(); // サーバーからのレスポンスを取得
   if (data.success) {
     alert(data.message || "対局結果を記録しました。");
-
-    // フリー／指導の場合、removeParticipantをスキップしてもよいが、
-    // 一応処理統一のためそのまま実行
     removeParticipant("player1", index, `participant-${payload.player1_id}`);
     removeParticipant("player2", index, `participant-${payload.player2_id}`);
     resetMatchCard(index);
+    await reloadParticipants();   // ★ ここを追加：保存後は必ず最新参加者を再取得
   } else {
     alert("保存に失敗しました：" + data.message);
   }

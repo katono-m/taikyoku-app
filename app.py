@@ -3197,8 +3197,16 @@ def get_today_participants():
 
     members = subquery.order_by(order_column).all()
 
+    # ここでクラブを必ず絞る
+    club_strengths = (
+        Strength.query
+        .filter_by(club_id=g.current_club)
+        .order_by(Strength.order)
+        .all()
+    )
+    strength_map = {s.name: s.order for s in club_strengths}
+
     result = []
-    strength_map = {s.name: s.order for s in Strength.query.all()}
     for m in members:
         result.append({
             "id": m.id,
