@@ -3817,9 +3817,12 @@ def results_edit_index():
     # 表示用に整形
     rows = []
     for m in matches:
-        # 結果は2件の想定（プレイヤーごと）
-        r1, r2 = (m.results + [None, None])[:2]
-        # 名前は MatchResult.opponent_name からでも取れるが、確実性のため Member を参照
+        # 結果は2件の想定（プレイヤーごと）だが、順序は保証されないので player_id で突き合わせる
+        r_by_pid = {r.player_id: r for r in (m.results or [])}
+        r1 = r_by_pid.get(m.player1_id)
+        r2 = r_by_pid.get(m.player2_id)
+
+        # 名前は Member を優先、なければ相手名をフォールバック
         p1 = Member.query.get(m.player1_id)
         p2 = Member.query.get(m.player2_id)
         p1_name = p1.name if p1 else (r2.opponent_name if r2 else "")
