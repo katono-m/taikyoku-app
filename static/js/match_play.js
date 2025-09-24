@@ -2,6 +2,80 @@ let handicapRules = [];
 let allParticipants = [];  // ← この行を fetchTodayParticipants の「前」に追加
 let assignedParticipantIds = new Set();
 
+/* =======================
+   QRスキャン → カードへスクロール
+   ======================= */
+
+/** スキャン文字列からトークン or コードを抽出
+ * - 例1: https://shogi-match.com/public/m/abcd1234ef567890 → abcd1234ef567890
+ * - 例2: 単体トークン abcd1234ef567890
+ * - 例3: member_code / id（英数/記号少々）
+ */
+function parseScan(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  // URL中の /m/<token> を優先抽出
+  const m = s.match(/\/m\/([a-z0-9]{8,})/i);
+  if (m) return { kind: "qr_token", value: m[1] };
+  // 長めの英数はトークン候補とみなす
+  if (/^[a-z0-9]{8,}$/i.test(s)) return { kind: "qr_token", value: s };
+  // それ以外は member_code / id 候補
+  return { kind: "code_or_id", value: s };
+}
+
+/** 会員を特定（qr_token / member_code / id いずれでもOK） */
+function findParticipantByScan(parsed) {
+  if (!parsed) return null;
+  const v = parsed.value;
+  if (parsed.kind === "qr_token") {
+    return allParticipants.find(p => (p.qr_token && String(p.qr_token).toLowerCase() === v.toLowerCase())) || null;
+  }
+  // code_or_id
+  return allParticipants.find(p =>
+    String(p.member_code || "").toLowerCase() === v.toLowerCase() ||
+    String(p.id || "").toLowerCase() === v.toLowerCase()
+  ) || null;
+}
+
+/** 参加者が入っているカード要素を探す（右側のカード群） */
+function findCardElementByParticipantId(pid) {
+  if (!pid) return null;
+  // 各カードのスロットに data-participant-id が入る実装なので、直接検索
+  const slot = document.querySelector(`.player-slot[data-participant-id="${pid}"]`);
+  return slot ? slot.closest(".match-card") : null;
+}
+
+/** スクロール＆一時ハイライト（カード or 名簿行） */
+function scrollAndFlash(el) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("flash-highlight");
+  setTimeout(() => el.classList.remove("flash-highlight"), 1300);
+}
+
+/** スキャン値で探して、カード or 名簿行をスクロール表示 */
+function handleScan(raw) {
+  const parsed = parseScan(raw);
+  const p = findParticipantByScan(parsed);
+  const input = document.getElementById("scan-input");
+  if (input) { input.value = ""; input.focus(); }
+
+  if (!p) {
+    alert("該当会員が見つかりませんでした。");
+    return;
+  }
+  // まずカードを探す
+  const cardEl = findCardElementByParticipantId(p.id);
+  if (cardEl) {
+    scrollAndFlash(cardEl);
+    return;
+  }
+  // カードにいなければ、左の参加者一覧の該当行へ
+  const row = document.getElementById(`participant-${p.id}`);
+  if (row) scrollAndFlash(row);
+  else alert("本日の参加者に見つかりませんでした。");
+}
+
 // ✅ ページ読み込み時にクエリパラメータを取得する関数
 function getQueryParam(key) {
   const params = new URLSearchParams(window.location.search);
@@ -13,6 +87,34 @@ document.addEventListener("DOMContentLoaded", async () => { // HTML文書の読�
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
   window.today = today;
+
+  // --- QRスキャン用の入力欄を常時フォーカス
+  const scanInput = document.getElementById("scan-input");
+  if (scanInput) {
+    const focusScan = () => scanInput.focus();
+    focusScan();
+
+    // スキャナは通常 Enter を送るので、Enterで確定
+    scanInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const v = scanInput.value;
+        if (v && v.trim()) handleScan(v);
+      }
+    });
+
+    // クリックやキー操作でフォーカスが外れても戻すショートカット
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        focusScan();
+      }
+    });
+
+    // 万一フォーカスが外れても数秒おきに復帰
+    setInterval(() => {
+      if (document.activeElement !== scanInput) focusScan();
+    }, 3000);
+  }
 
   try {
     handicapRules = await fetchHandicapRules();

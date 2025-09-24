@@ -3,6 +3,26 @@
 {% block content %}
 <h2 style="text-align: center;">対局進行フェーズ</h2>
 
+<style>
+  /* スクロール後のカードや行を一時的に強調 */
+  .flash-highlight {
+    animation: flash-border 1.2s ease-in-out 1;
+  }
+  @keyframes flash-border {
+    0%   { box-shadow: 0 0 0px 0 rgba(30,144,255,.0); }
+    40%  { box-shadow: 0 0 0px 4px rgba(30,144,255,.35); }
+    100% { box-shadow: 0 0 0px 0 rgba(30,144,255,.0); }
+  }
+</style>
+
+<!-- 🔎 スキャン用の不可視入力（常時フォーカス） -->
+<input id="scan-input" type="text" autocomplete="off"
+       style="position:fixed; left:-9999px; width:1px; height:1px; opacity:0;">
+<div style="text-align:center; font-size:.9rem; color:#555; margin-bottom:.25rem;">
+  ※QRリーダーをつなぐだけでOK。読み取ると該当カードへ自動スクロールします。<br>
+  フォーカスが外れたら <kbd>Ctrl</kbd>+<kbd>L</kbd> で復帰できます。
+</div>
+
 <div style="text-align: center; margin-bottom: 1.5rem;">
   <a href="{{ url_for('match_edit') }}" class="btn">← 参加者編集に戻る</a>
   <a href="{{ url_for('export_today_participants_csv') }}" class="btn" style="margin-left: 0.75rem;">

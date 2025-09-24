@@ -3215,7 +3215,8 @@ def get_today_participants():
             "kana": m.kana,
             "grade": m.grade,
             "member_type": m.member_type,
-            "grade_order": strength_map.get(m.grade, -1)
+            "grade_order": strength_map.get(m.grade, -1),
+            "qr_token": m.qr_token  # ← 追加
         })
 
     # ▼ 追加：member_code を自然順（数値優先）で並べ替え
