@@ -18,6 +18,26 @@
     button { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; }
     button:hover { background:#f0f0f0; }
     .error { color: #b00020; margin: 8px 0; }
+    @media (max-width: 640px) {
+      /* 全体の文字と余白を少しだけ凝縮 */
+      body { padding: 12px; font-size: 14px; }
+      header { flex-direction: column; align-items: stretch; gap: 8px; }
+      header a { font-size: 0.9rem; padding: 6px 10px; }
+
+      .card { padding: 10px; }
+      h2, h3 { font-size: 1.1rem; }
+      .muted { font-size: 0.95rem; }
+
+      /* 表はスマホでは横に広がらないようにする */
+      table { font-size: 12px; table-layout: auto; }
+      th, td { padding: 4px 6px; white-space: normal; } /* 折り返し許可 */
+
+      /* ← これが肝。PCで使っている min-width をスマホだけ無効化 */
+      table.table-history,
+      table.table-matches {
+        min-width: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -74,7 +94,7 @@
     <section class="card">
       <h3 style="margin-top:0;">昇段級履歴</h3>
       <div style="max-height:300px; overflow-y:auto; border:1px solid #ddd; border-radius:4px;">
-        <table class="table" style="width:100%; min-width:600px; border-collapse:collapse;">
+        <table class="table table-history" style="width:100%; min-width:600px; border-collapse:collapse;">
           <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
             <tr>
               <th style="text-align:left; white-space:nowrap;">変更日</th>
@@ -106,7 +126,7 @@
     <section class="card">
       <h3 style="margin-top:0;">対局一覧</h3>
       <div style="max-height:400px; overflow-y:auto; border:1px solid #ddd; border-radius:4px;">
-        <table class="table" style="width:100%; min-width:700px; border-collapse:collapse;">
+        <table class="table table-matches" style="width:100%; min-width:700px; border-collapse:collapse;">
           <thead style="position: sticky; top: 0; background: #fff; z-index: 2;">
             <tr>
               <th>日付</th>
