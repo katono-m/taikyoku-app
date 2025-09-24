@@ -301,6 +301,14 @@ function renderMatchCards(cards) {
     if (matchTypeSelect) matchTypeSelect.value = card.match_type || "認定戦";
     if (startBtn) startBtn.style.display = card.status === "ongoing" ? "none" : "inline-block";
 
+    // ★ 対局中カードの色を復元（種別クラス付け直し）
+    if (cardDiv && card.status === "ongoing") {
+      // 既存タイプを全て外してから現在の種別を追加
+      ["認定戦","指導","フリー","初回認定"].forEach(c => cardDiv.classList.remove(c));
+      const mt = matchTypeSelect ? matchTypeSelect.value : (card.match_type || "認定戦");
+      if (mt) cardDiv.classList.add(mt);
+    }
+
     if (p1) {
       p1.dataset.participantId = card.p1_id || "";
       p1.removeAttribute("data-original-html");   // ← もう使わない
@@ -820,12 +828,25 @@ async function startMatch(index) {
   if (card) card.dataset.status = "ongoing";
 
   if (card) {
-    card.classList.add("in-progress");   // ← 対局中の薄赤ハイライト
-    card.style.backgroundColor = "";     // ★追加：インライン背景を解除してCSSを効かせる
+    card.dataset.status = "ongoing";
+    // まず「対局中」共通クラスを付与
+    card.classList.add("in-progress");
+    // 以前のインライン背景があれば解除（CSSを効かせる）
+    card.style.backgroundColor = "";
+
+    // ★ 種別クラスの付け替え
+    // 既存の種別クラスをいったん全て外す
+    ["認定戦","指導","フリー","初回認定"].forEach(c => card.classList.remove(c));
   }
 
   // 対局種別と棋力を取得
   const matchType = document.getElementById(`match-type-${index}`).value;
+
+  // ★ 現在の種別クラスを付与（認定戦/指導/フリー/初回認定）
+  if (card && matchType) {
+    card.classList.add(matchType);
+  }
+
   console.log("🟡 startMatch()：matchType =", matchType);
 
   // プレイヤー1
@@ -999,8 +1020,10 @@ async function resetMatchCard(index) {
 
   // ステータス戻す＋ハイライト解除（★ ここで最初の card をそのまま使う）
   card.dataset.status = "pending";
-  card.classList.remove("in-progress"); // CSSクラス方式の解除
-  card.style.backgroundColor = "";      // 万一 inline で色を付けた場合の解除
+  // 対局中・種別クラスをすべて外す
+  card.classList.remove("in-progress");
+  ["認定戦","指導","フリー","初回認定"].forEach(c => card.classList.remove(c));
+  card.style.backgroundColor = "";      // 念のためインライン色もクリア
 
   // 対局開始ボタン再表示
   const startBtn = document.getElementById(`start-button-${index}`);
@@ -1227,7 +1250,9 @@ async function cancelMatch(index) {
 
   if (card) {
     card.dataset.status = "pending";
-    card.classList.remove("in-progress"); // 薄赤クラスを確実に外す
+    // 対局中・種別クラスをすべて外す
+    card.classList.remove("in-progress");
+    ["認定戦","指導","フリー","初回認定"].forEach(c => card.classList.remove(c));
     card.style.backgroundColor = "";      // 念のためインライン色もクリア
   }
 
