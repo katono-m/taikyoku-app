@@ -1249,7 +1249,7 @@ def match_edit():
     order_participants = request.args.get('order_participants', 'asc')
 
     # 今日の日付（UTC→日本時間にするなら修正要）
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y-%m-%d")
 
     # 🔧 追加：本日の参加者IDを取得して除外用に使う
     today_ids = [
