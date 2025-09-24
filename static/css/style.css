@@ -235,19 +235,19 @@ header {
   box-shadow: 0 0 0 2px rgba(255, 77, 77, 0.12) inset;
 }
 
-.match-card.in-progress.指導対局 {
+.match-card.in-progress.指導 {
   background-color: #f1f7ff;           /* 薄い青 */
   border-color: #b3d1ff !important;
   box-shadow: 0 0 0 2px rgba(77, 136, 255, 0.12) inset;
 }
 
-.match-card.in-progress.フリー対局 {
+.match-card.in-progress.フリー {
   background-color: #fffdf1;           /* 薄い黄色 */
   border-color: #ffe9a3 !important;
   box-shadow: 0 0 0 2px rgba(255, 221, 77, 0.12) inset;
 }
 
-.match-card.in-progress.初回認定戦 {
+.match-card.in-progress.初回認定 {
   background-color: #f1fff4;           /* 薄い緑 */
   border-color: #a3ffb7 !important;
   box-shadow: 0 0 0 2px rgba(77, 255, 136, 0.12) inset;
