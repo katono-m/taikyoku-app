@@ -19,7 +19,7 @@
     button:hover { background:#f0f0f0; }
     .error { color: #b00020; margin: 8px 0; }
     @media (max-width: 640px) {
-      /* 全体の文字と余白を少しだけ凝縮 */
+      /* 全体の文字と余白：いまのサイズ感は維持 */
       body { padding: 12px; font-size: 14px; }
       header { flex-direction: column; align-items: stretch; gap: 8px; }
       header a { font-size: 0.9rem; padding: 6px 10px; }
@@ -28,15 +28,17 @@
       h2, h3 { font-size: 1.1rem; }
       .muted { font-size: 0.95rem; }
 
-      /* スマホ時：表は縮小フォントで横スクロール優先（折り返しなし） */
+      /* ▼テーブル：横スクロール優先・列幅は最小化して内容分だけ広げる */
       table { font-size: 12px; table-layout: auto; }
       th, td { padding: 4px 6px; white-space: nowrap; } /* 折り返し禁止 */
 
-      /* min-width の扱い */
-      table.table-history,
-      table.table-matches {
-        min-width: 600px;  /* 横スクロール前提で固定幅を残す */
-      }
+      /* 列幅を可能な限り詰めるヒント（autoレイアウト＋nowrapと併用） */
+      table.table-history th, table.table-history td,
+      table.table-matches th, table.table-matches td { width: 1%; }
+
+      /* 横スクロールを確保：最小幅は残しておく（必要に応じて調整可） */
+      table.table-history { min-width: 600px; }
+      table.table-matches { min-width: 700px; }
     }
   </style>
 </head>
