@@ -28,14 +28,14 @@
       h2, h3 { font-size: 1.1rem; }
       .muted { font-size: 0.95rem; }
 
-      /* 表はスマホでは横に広がらないようにする */
+      /* スマホ時：表は縮小フォントで横スクロール優先（折り返しなし） */
       table { font-size: 12px; table-layout: auto; }
-      th, td { padding: 4px 6px; white-space: normal; } /* 折り返し許可 */
+      th, td { padding: 4px 6px; white-space: nowrap; } /* 折り返し禁止 */
 
-      /* ← これが肝。PCで使っている min-width をスマホだけ無効化 */
+      /* min-width の扱い */
       table.table-history,
       table.table-matches {
-        min-width: 0 !important;
+        min-width: 600px;  /* 横スクロール前提で固定幅を残す */
       }
     }
   </style>

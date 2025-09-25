@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>全会員名簿</title>
   <style>
     :root {
@@ -55,6 +56,41 @@
       text-decoration: none;
       color: inherit;
       display: block;
+    }
+    @media (max-width: 640px) {
+      /* 画面全体を使って表示（左右余白を少なめに） */
+      body {
+        display: block;          /* PCのflex配置はスマホでは解除 */
+        padding: 12px;
+      }
+      .page {
+        width: 100vw;            /* スマホは全幅 */
+        margin: 0 0 16px;        /* 上下だけ余白、左右は詰める */
+      }
+
+      /* テーブルまわり：横スクロールをなくし、折り返して収める */
+      .table-container {
+        max-height: none;        /* スマホは縦スクロールに任せる（任意） */
+        border-radius: 6px;
+        box-shadow: none;        /* 視認性重視で控えめに（任意） */
+      }
+      table {
+        width: 100%;
+        min-width: 0 !important; /* ← これが肝：固定最小幅を無効化 */
+        table-layout: auto;      /* 内容に応じて列幅調整 */
+        font-size: 14px;         /* 少しだけ凝縮 */
+      }
+      colgroup col {
+        width: auto !important;  /* 固定列幅をスマホ時は解除 */
+      }
+      th, td {
+        padding: 6px 8px;
+        white-space: normal;     /* 折り返し許可 */
+      }
+
+      /* 見出し・リンク等をやや小さめにして情報量を確保 */
+      h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+      a { font-size: 0.95rem; }
     }
   </style>
 </head>
