@@ -119,9 +119,13 @@ document.addEventListener("DOMContentLoaded", async () => { // HTML文書の読�
   try {
     handicapRules = await fetchHandicapRules();
 
-    // 🔽 ここだけ追加（URLから並び替えキーを取得）
-    const sortKey = window.sortKey || "member_code";
-    const sortOrder = window.sortOrder || "asc";
+    // 🔽 並び順は「URLクエリ優先」→ 無ければ rating/asc を既定に
+    const urlAtLoad = new URL(window.location.href);
+    const sortKey = urlAtLoad.searchParams.get("sort") || "rating";
+    const sortOrder = urlAtLoad.searchParams.get("order") || "asc";
+    // 以後の処理でも参照できるように保持
+    window.sortKey = sortKey;
+    window.sortOrder = sortOrder;
 
     // 🔄 並び替え指定付きで参加者を取得
     const participants = await fetchTodayParticipants(today, sortKey, sortOrder);
@@ -211,6 +215,21 @@ async function fetchTodayParticipants(date, sort = "member_code", order = "asc")
   const res = await fetch(`/api/participants?date=${date}&sort=${sort}&order=${order}`);
   const data = await res.json();
   allParticipants = data;
+
+  // ★ フロント側で安全に整列：rating の低い順（ASC）/高い順（DESC）
+  if (String(sort) === "rating") {
+    const asc = String(order) !== "desc";
+    data.sort((a, b) => {
+      const ra0 = (typeof a.rating === "number") ? a.rating :
+                  (a.rating != null && !isNaN(+a.rating)) ? +a.rating : NaN;
+      const rb0 = (typeof b.rating === "number") ? b.rating :
+                  (b.rating != null && !isNaN(+b.rating)) ? +b.rating : NaN;
+      const ra = Number.isFinite(ra0) ? ra0 : (asc ? Infinity : -Infinity); // 空は末尾へ
+      const rb = Number.isFinite(rb0) ? rb0 : (asc ? Infinity : -Infinity);
+      return asc ? (ra - rb) : (rb - ra);
+    });
+  }
+
   return data;
 }
 
@@ -236,15 +255,19 @@ function renderParticipantTable(participants) {
 
   tbody.innerHTML = participants
     .filter(p => !assignedParticipantIds.has(p.id))
-    .map(p => `
-      <tr draggable="true" ondragstart="drag(event)" id="participant-${p.id}">
-        <td>${p.member_code ?? ""}</td>
-        <td><a href="/member/${p.id}/recent" target="_blank" class="person-link">${p.name}</a></td>
-        <td>${p.kana}</td>
-        <td>${p.grade}</td>
-        <td>${p.member_type}</td>
-      </tr>
-    `).join("");
+    .map(p => {
+      const r = p?.rating_disp ?? "";
+      const rCell = p?.fixed ? `<u>${r}</u>` : r;
+      return `
+        <tr draggable="true" ondragstart="drag(event)" id="participant-${p.id}">
+          <td>${p.member_code ?? ""}</td>
+          <td><a href="/member/${p.id}/recent" target="_blank" class="person-link">${p.name}</a></td>
+          <td>${p.kana}</td>
+          <td>${rCell}</td>
+          <td>${p.member_type}</td>
+        </tr>
+      `;
+    }).join("");
 }
 
 // ✅ DBからロードしたカード状態をもとにHTMLを生成
@@ -299,7 +322,7 @@ function renderMatchCards(cards) {
     if (cardDiv) cardDiv.dataset.status = card.status || "";
     if (infoDiv) infoDiv.innerHTML = card.info_html || "";
     if (matchTypeSelect) matchTypeSelect.value = card.match_type || "認定戦";
-    if (startBtn) startBtn.style.display = "none";
+    if (startBtn) startBtn.style.display = card.status === "ongoing" ? "none" : "inline-block";
 
     // ★ 対局中カードの色を復元（種別クラス付け直し）
     if (cardDiv && card.status === "ongoing") {
@@ -515,7 +538,7 @@ function createMatchCard(index, card = null) {
     </div>
 
   <div style="margin-top: 0.5rem; display: flex; justify-content: flex-end;" id="button-area-${index}">
-    <div id="start-button-${index}" style="display: none;">
+    <div id="start-button-${index}" style="display: ${card?.status === "ongoing" ? "none" : "block"};">
       <button onclick="startMatch(${index})">対局開始</button>
     </div>
   </div>
@@ -821,22 +844,12 @@ function getParticipantDataById(id) {
 // 対局情報（プレイヤー、駒落ち、種別など）をカードに表示する処理
 async function startMatch(index) {  
 
-  // 🔒 両者が未セットなら開始させない
-  const p1slot = document.getElementById(`card${index}-player1`);
-  const p2slot = document.getElementById(`card${index}-player2`);
-  const id1 = p1slot?.dataset?.participantId || "";
-  const id2 = p2slot?.dataset?.participantId || "";
-  if (!id1 || !id2) {
-    alert("対局者を入力してください");
-    const sb = document.getElementById(`start-button-${index}`);
-    if (sb) sb.style.display = "none";   // 念のため非表示に戻す
-    return;
-  }
-
   const startBtn = document.getElementById(`start-button-${index}`);
   if (startBtn) startBtn.style.display = "none";
 
   const card = document.getElementById(`match-card-${index}`);
+  if (card) card.dataset.status = "ongoing";
+
   if (card) {
     card.dataset.status = "ongoing";
     // まず「対局中」共通クラスを付与
@@ -846,22 +859,27 @@ async function startMatch(index) {
 
     // ★ 種別クラスの付け替え
     // 既存の種別クラスをいったん全て外す
-    ["認定戦","指導","フリー","初回認定","レーティング戦","指導対局","フリー対局"]
-      .forEach(c => card.classList.remove(c));
+    ["認定戦","指導","フリー","初回認定"].forEach(c => card.classList.remove(c));
   }
 
-  // 対局種別を取得
+  // 対局種別と棋力を取得
   const matchType = document.getElementById(`match-type-${index}`).value;
 
-  // ★ 現在の種別クラスを付与（認定戦/指導/フリー/初回認定/レーティング戦/指導対局/フリー対局）
+  // ★ 現在の種別クラスを付与（認定戦/指導/フリー/初回認定）
   if (card && matchType) {
     card.classList.add(matchType);
   }
 
   console.log("🟡 startMatch()：matchType =", matchType);
 
-  // 既に取得済みの id1, id2 を使う（再宣言しない）
+  // プレイヤー1
+  const p1 = document.getElementById(`card${index}-player1`);
+  const id1 = p1.dataset.participantId || "";
   const participant1 = getParticipantDataById(id1);
+
+  // プレイヤー2
+  const p2 = document.getElementById(`card${index}-player2`);
+  const id2 = p2.dataset.participantId || "";
   const participant2 = getParticipantDataById(id2);
 
   // ✅ 対局「開始時点」の棋力をカード要素に保存（後で /save_match_result 送信に使う）
@@ -876,7 +894,7 @@ async function startMatch(index) {
   const isP1Unrated = participant1 && participant1.grade === "未認定";
   const isP2Unrated = participant2 && participant2.grade === "未認定";
 
-  console.log("🟢 デバッグ情報：startMatch()", {
+    console.log("🟢 デバッグ情報：startMatch()", {
     matchType,
     isInitialAssessment,
     participant1: {
@@ -1647,9 +1665,10 @@ function showShodanModal(index) {
 async function reloadParticipants() {
   const today = window.today || new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  // 直近の並び順を維持（未設定ならデフォルトは 'grade' / 'asc' を想定）
-  const sortKey = (window.sortKey && typeof window.sortKey === "string") ? window.sortKey : "grade";
-  const sortOrder = (window.sortOrder === "desc" ? "desc" : "asc");
+  // 直近の並び順を維持：URLクエリ > window保持 > 既定（rating/asc）
+  const urlNow = new URL(window.location.href);
+  const sortKey = urlNow.searchParams.get("sort") || window.sortKey || "rating";
+  const sortOrder = urlNow.searchParams.get("order") || window.sortOrder || "asc";
 
   // 並び順パラメータを明示的に渡す（← ここがポイント）
   const participants = await fetchTodayParticipants(today, sortKey, sortOrder);
@@ -1692,13 +1711,32 @@ async function sortParticipants(key) {
 
   // URLだけ更新（履歴残さず）
   window.history.replaceState(null, "", url);
+  // ★ window.* にも反映しておく（再読込や他処理が参照）
+  window.sortKey = key;
+  window.sortOrder = newOrder;
 
   // 並び替えたデータを再取得して描画
   const today = window.today;
-  const sorted = await fetch(`/api/participants?date=${today}&sort=${key}&order=${newOrder}`);
-  const data = await sorted.json();
-  allParticipants = data; // 上書き
-  renderParticipantTable(data);
+  const res = await fetch(`/api/participants?date=${today}&sort=${key}&order=${newOrder}`);
+  const data = await res.json();
+
+  // ★ rating の時はフロントで確実に整列（NULL末尾）
+  let view = data;
+  if (String(key) === "rating") {
+    const asc = String(newOrder) !== "desc";
+    view = [...data].sort((a, b) => {
+      const ra0 = (typeof a.rating === "number") ? a.rating :
+                  (a.rating != null && !isNaN(+a.rating)) ? +a.rating : NaN;
+      const rb0 = (typeof b.rating === "number") ? b.rating :
+                  (b.rating != null && !isNaN(+b.rating)) ? +b.rating : NaN;
+      const ra = Number.isFinite(ra0) ? ra0 : (asc ? Infinity : -Infinity);
+      const rb = Number.isFinite(rb0) ? rb0 : (asc ? Infinity : -Infinity);
+      return asc ? (ra - rb) : (rb - ra);
+    });
+  }
+
+  allParticipants = data; // 生データは保持
+  renderParticipantTable(view); // 表示は整列後
 }
 
 function onMatchTypeChange(select, index) {
