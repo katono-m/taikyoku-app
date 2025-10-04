@@ -110,9 +110,26 @@ document.addEventListener("DOMContentLoaded", async () => { // HTML文書の読�
       }
     });
 
-    // 万一フォーカスが外れても数秒おきに復帰
+    // 万一フォーカスが外れても数秒おきに復帰（ユーザー操作中は奪わない）
     setInterval(() => {
-      if (document.activeElement !== scanInput) focusScan();
+      const ae = document.activeElement;
+      // フォーカスが select/input/textarea/button や各種モーダル内にある間は触らない
+      const isUserInteracting = (() => {
+        if (!ae) return false;
+        const tag = (ae.tagName || "").toLowerCase();
+        if (["select","input","textarea","button"].includes(tag)) return true;
+        // モーダル表示中（昇段級・指導・終日終了 など）も奪わない
+        return !!(
+          ae.closest?.("#shido-modal") ||
+          ae.closest?.("#shodan-modal") ||
+          ae.closest?.("#repeat-match-modal") ||
+          ae.closest?.("#end-all-modal")
+        );
+      })();
+
+      if (!isUserInteracting && document.activeElement !== scanInput) {
+        focusScan();
+      }
     }, 3000);
   }
 
