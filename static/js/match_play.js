@@ -299,7 +299,7 @@ function renderMatchCards(cards) {
     if (cardDiv) cardDiv.dataset.status = card.status || "";
     if (infoDiv) infoDiv.innerHTML = card.info_html || "";
     if (matchTypeSelect) matchTypeSelect.value = card.match_type || "認定戦";
-    if (startBtn) startBtn.style.display = card.status === "ongoing" ? "none" : "inline-block";
+    if (startBtn) startBtn.style.display = "none";
 
     // ★ 対局中カードの色を復元（種別クラス付け直し）
     if (cardDiv && card.status === "ongoing") {
@@ -515,7 +515,7 @@ function createMatchCard(index, card = null) {
     </div>
 
   <div style="margin-top: 0.5rem; display: flex; justify-content: flex-end;" id="button-area-${index}">
-    <div id="start-button-${index}" style="display: ${card?.status === "ongoing" ? "none" : "block"};">
+    <div id="start-button-${index}" style="display: none;">
       <button onclick="startMatch(${index})">対局開始</button>
     </div>
   </div>
@@ -821,12 +821,22 @@ function getParticipantDataById(id) {
 // 対局情報（プレイヤー、駒落ち、種別など）をカードに表示する処理
 async function startMatch(index) {  
 
+  // 🔒 両者が未セットなら開始させない
+  const p1slot = document.getElementById(`card${index}-player1`);
+  const p2slot = document.getElementById(`card${index}-player2`);
+  const id1 = p1slot?.dataset?.participantId || "";
+  const id2 = p2slot?.dataset?.participantId || "";
+  if (!id1 || !id2) {
+    alert("対局者を入力してください");
+    const sb = document.getElementById(`start-button-${index}`);
+    if (sb) sb.style.display = "none";   // 念のため非表示に戻す
+    return;
+  }
+
   const startBtn = document.getElementById(`start-button-${index}`);
   if (startBtn) startBtn.style.display = "none";
 
   const card = document.getElementById(`match-card-${index}`);
-  if (card) card.dataset.status = "ongoing";
-
   if (card) {
     card.dataset.status = "ongoing";
     // まず「対局中」共通クラスを付与
@@ -836,27 +846,22 @@ async function startMatch(index) {
 
     // ★ 種別クラスの付け替え
     // 既存の種別クラスをいったん全て外す
-    ["認定戦","指導","フリー","初回認定"].forEach(c => card.classList.remove(c));
+    ["認定戦","指導","フリー","初回認定","レーティング戦","指導対局","フリー対局"]
+      .forEach(c => card.classList.remove(c));
   }
 
-  // 対局種別と棋力を取得
+  // 対局種別を取得
   const matchType = document.getElementById(`match-type-${index}`).value;
 
-  // ★ 現在の種別クラスを付与（認定戦/指導/フリー/初回認定）
+  // ★ 現在の種別クラスを付与（認定戦/指導/フリー/初回認定/レーティング戦/指導対局/フリー対局）
   if (card && matchType) {
     card.classList.add(matchType);
   }
 
   console.log("🟡 startMatch()：matchType =", matchType);
 
-  // プレイヤー1
-  const p1 = document.getElementById(`card${index}-player1`);
-  const id1 = p1.dataset.participantId || "";
+  // 既に取得済みの id1, id2 を使う（再宣言しない）
   const participant1 = getParticipantDataById(id1);
-
-  // プレイヤー2
-  const p2 = document.getElementById(`card${index}-player2`);
-  const id2 = p2.dataset.participantId || "";
   const participant2 = getParticipantDataById(id2);
 
   // ✅ 対局「開始時点」の棋力をカード要素に保存（後で /save_match_result 送信に使う）
@@ -871,7 +876,7 @@ async function startMatch(index) {
   const isP1Unrated = participant1 && participant1.grade === "未認定";
   const isP2Unrated = participant2 && participant2.grade === "未認定";
 
-    console.log("🟢 デバッグ情報：startMatch()", {
+  console.log("🟢 デバッグ情報：startMatch()", {
     matchType,
     isInitialAssessment,
     participant1: {
